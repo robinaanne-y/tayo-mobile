@@ -2,7 +2,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/networking/providers.dart';
 import '../../data/household_repository.dart';
+import '../../data/invitation_repository.dart';
 
 final householdRepositoryProvider = Provider<HouseholdRepository>((ref) {
   return HouseholdRepository(ref.watch(apiClientProvider));
+});
+
+final invitationRepositoryProvider = Provider<InvitationRepository>((ref) {
+  return InvitationRepository(ref.watch(apiClientProvider));
 });

@@ -36,6 +36,21 @@ class AuthRepository {
     return _persistAndReturnUser(response.data as Map<String, dynamic>);
   }
 
+  Future<AppUser> claimActivation({
+    required String token,
+    required String email,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    final response = await _apiClient.post('/activation/$token/claim', data: {
+      'email': email,
+      'password': password,
+      'password_confirmation': passwordConfirmation,
+    });
+
+    return _persistAndReturnUser(response.data as Map<String, dynamic>);
+  }
+
   Future<void> logout() async {
     try {
       await _apiClient.post('/auth/logout');

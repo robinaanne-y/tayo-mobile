@@ -6,31 +6,35 @@ class AppColors {
   AppColors._();
 
   // Backgrounds
-  static const Color background = Color(0xFFFBF8F3);
+  static const Color background = Color(0xFFF8F7F2);
   static const Color surface = Color(0xFFFFFFFF);
 
   // Text
-  static const Color textPrimary = Color(0xFF2E2A26);
-  static const Color textSecondary = Color(0xFF7A736A);
+  static const Color textPrimary = Color(0xFF2C2C2C);
+  static const Color textSecondary = Color(0xFF8A8A8A);
+
+  // Brand
+  static const Color primary = Color(0xFF4FBDAD);
+  static const Color accent = Color(0xFFE8897A);
 
   // Palette accents (member/category/status use)
-  static const Color mint = Color(0xFF7FC8B8);
-  static const Color coral = Color(0xFFF3927A);
-  static const Color skyBlue = Color(0xFF8FB8DE);
-  static const Color softYellow = Color(0xFFF3D07A);
-  static const Color lavender = Color(0xFFB6A6D9);
+  static const Color mint = primary;
+  static const Color coral = accent;
+  static const Color skyBlue = Color(0xFF5B9BD5);
+  static const Color softYellow = Color(0xFFF5C066);
+  static const Color lavender = Color(0xFF9B8EC4);
 
-  static const Color border = Color(0xFFEAE3D9);
+  static const Color border = Color(0xFFE5E2DA);
   static const Color danger = Color(0xFFD9695B);
-  static const Color success = Color(0xFF6FAE8C);
+  static const Color success = primary;
 
   /// Rotating palette for assigning a consistent color per household member.
   static const List<Color> memberPalette = [
-    mint,
-    coral,
-    skyBlue,
-    softYellow,
     lavender,
+    skyBlue,
+    coral,
+    mint,
+    softYellow,
   ];
 
   static Color memberColor(int index) =>

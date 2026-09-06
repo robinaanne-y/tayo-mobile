@@ -17,7 +17,7 @@ void main() {
     );
   });
 
-  testWidgets('unauthenticated user lands on the login screen', (tester) async {
+  testWidgets('unauthenticated user lands on the welcome screen', (tester) async {
     await tester.pumpWidget(const ProviderScope(child: TayoApp()));
 
     // First frame is the splash screen while auth status is unknown.
@@ -25,7 +25,7 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    // No stored token -> router redirects to /login.
-    expect(find.text('Welcome back'), findsOneWidget);
+    // No stored token -> router redirects to /welcome.
+    expect(find.text('Your family, in sync'), findsOneWidget);
   });
 }

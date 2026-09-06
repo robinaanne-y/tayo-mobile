@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
 
@@ -7,21 +8,34 @@ class AppTheme {
 
   static ThemeData get light {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: AppColors.mint,
+      seedColor: AppColors.primary,
       brightness: Brightness.light,
       surface: AppColors.surface,
+    );
+
+    final baseTextTheme = GoogleFonts.interTextTheme();
+    final headingStyle = GoogleFonts.nunito(
+      fontWeight: FontWeight.w800,
+      color: AppColors.textPrimary,
     );
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.background,
-      fontFamily: 'Roboto',
-      appBarTheme: const AppBarTheme(
+      textTheme: baseTextTheme.copyWith(
+        titleLarge: headingStyle.copyWith(fontSize: 22),
+        headlineSmall: headingStyle.copyWith(fontSize: 20),
+        titleMedium: headingStyle.copyWith(fontSize: 16),
+        bodyMedium: GoogleFonts.inter(color: AppColors.textPrimary),
+        bodySmall: GoogleFonts.inter(color: AppColors.textSecondary),
+      ),
+      appBarTheme: AppBarTheme(
         backgroundColor: AppColors.background,
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
         centerTitle: false,
+        titleTextStyle: headingStyle.copyWith(fontSize: 18),
       ),
       cardTheme: CardThemeData(
         color: AppColors.surface,
@@ -45,33 +59,25 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.mint, width: 1.5),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.mint,
+          backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 14),
+          textStyle: GoogleFonts.nunito(
+            fontWeight: FontWeight.w800,
+            fontSize: 16,
+          ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
           ),
         ),
-      ),
-      textTheme: const TextTheme(
-        headlineSmall: TextStyle(
-          fontWeight: FontWeight.w600,
-          color: AppColors.textPrimary,
-        ),
-        titleMedium: TextStyle(
-          fontWeight: FontWeight.w600,
-          color: AppColors.textPrimary,
-        ),
-        bodyMedium: TextStyle(color: AppColors.textPrimary),
-        bodySmall: TextStyle(color: AppColors.textSecondary),
       ),
     );
   }

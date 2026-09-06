@@ -38,6 +38,12 @@ dependencies:
   # Networking
   dio: ^5.7.0
 
+  # Deep linking (invite / activation links)
+  app_links: ^6.3.2
+
+  # Sharing invite / activation links
+  share_plus: ^10.1.2
+
   # State management
   flutter_riverpod: ^2.6.1
 
@@ -46,6 +52,9 @@ dependencies:
 
   # Secure token storage
   flutter_secure_storage: ^9.2.2
+
+  # Design system fonts (Nunito headings / Inter body)
+  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:

@@ -48,9 +48,7 @@ class HomeScreen extends ConsumerWidget {
               Card(
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
-                  onTap: household == null
-                      ? null
-                      : () => context.push('/home/members', extra: household.id),
+                  onTap: household == null ? null : () => context.push('/family'),
                   child: Padding(
                     padding: const EdgeInsets.all(20),
                     child: Row(

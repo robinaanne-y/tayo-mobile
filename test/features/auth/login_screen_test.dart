@@ -16,7 +16,7 @@ void main() {
   testWidgets('shows validation errors for empty fields', (tester) async {
     await pumpLogin(tester);
 
-    await tester.tap(find.text('Log in'));
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Sign in'));
     await tester.pump();
 
     expect(find.text('Email is required'), findsOneWidget);
@@ -26,9 +26,10 @@ void main() {
   testWidgets('shows an error for an invalid email', (tester) async {
     await pumpLogin(tester);
 
-    await tester.enterText(find.widgetWithText(TextFormField, 'Email'), 'not-an-email');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Email address'), 'not-an-email');
     await tester.enterText(find.widgetWithText(TextFormField, 'Password'), 'password123');
-    await tester.tap(find.text('Log in'));
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Sign in'));
     await tester.pump();
 
     expect(find.text('Enter a valid email'), findsOneWidget);

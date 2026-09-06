@@ -1,4 +1,5 @@
 import '../../../core/networking/api_client.dart';
+import '../domain/activation.dart';
 import '../domain/member.dart';
 
 class MemberRepository {
@@ -30,6 +31,19 @@ class MemberRepository {
     );
 
     return Member.fromJson(
+      (response.data as Map<String, dynamic>)['data'] as Map<String, dynamic>,
+    );
+  }
+
+  Future<ActivationLink> createActivationLink({
+    required int householdId,
+    required int memberId,
+  }) async {
+    final response = await _apiClient.post(
+      '/households/$householdId/members/$memberId/activation-link',
+    );
+
+    return ActivationLink.fromJson(
       (response.data as Map<String, dynamic>)['data'] as Map<String, dynamic>,
     );
   }

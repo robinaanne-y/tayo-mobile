@@ -130,7 +130,11 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Family', style: Theme.of(context).textTheme.headlineSmall),
+                        Text(
+                          'Family',
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
                         const SizedBox(height: 2),
                         FutureBuilder<List<Member>>(
                           future: _membersFuture,
@@ -141,6 +145,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
                               count != null
                                   ? '$name · $count ${count == 1 ? 'member' : 'members'}'
                                   : name,
+                              overflow: TextOverflow.ellipsis,
                               style: Theme.of(context).textTheme.bodySmall,
                             );
                           },
@@ -148,16 +153,30 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  ElevatedButton.icon(
-                    onPressed: _openAddChoiceSheet,
-                    icon: const Icon(Icons.add_rounded, size: 18),
-                    label: const Text('Add'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(999),
+                  const SizedBox(width: 8),
+                  Material(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(999),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(999),
+                      onTap: _openAddChoiceSheet,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.add_rounded, size: 16, color: Colors.white),
+                            SizedBox(width: 4),
+                            Text(
+                              'Add',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

@@ -73,6 +73,35 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
     );
   }
 
+  Future<void> _openAddChoiceSheet() async {
+    final choice = await showAppBottomSheet<String>(
+      context: context,
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.person_add_rounded, color: AppColors.primary),
+            title: const Text('Add a member'),
+            subtitle: const Text('Enter their details yourself'),
+            onTap: () => Navigator.of(context).pop('add'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.link_rounded, color: AppColors.primary),
+            title: const Text('Invite to household'),
+            subtitle: const Text('Share a link or QR code'),
+            onTap: () => Navigator.of(context).pop('invite'),
+          ),
+        ],
+      ),
+    );
+
+    if (choice == 'add') {
+      await _openAddMemberSheet();
+    } else if (choice == 'invite') {
+      await _openInviteSheet();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_selected != null) {
@@ -83,97 +112,186 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
       );
     }
 
+    final household = ref.watch(authControllerProvider).user?.households.firstOrNull;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Family'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.link_rounded),
-            tooltip: 'Invite to household',
-            onPressed: _openInviteSheet,
-          ),
-          IconButton(
-            icon: const Icon(Icons.person_add_rounded),
-            onPressed: _openAddMemberSheet,
-          ),
-        ],
-      ),
-      body: FutureBuilder<List<Member>>(
-        future: _membersFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                snapshot.error is ApiException
-                    ? (snapshot.error as ApiException).message
-                    : 'Something went wrong. Please try again.',
-              ),
-            );
-          }
-
-          final members = snapshot.data ?? const [];
-          if (members.isEmpty) {
-            return const Center(child: Text('No members yet.'));
-          }
-
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: members.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 10),
-            itemBuilder: (context, index) {
-              final member = members[index];
-              return Card(
-                child: InkWell(
-                  onTap: () => setState(() => _selected = member),
-                  borderRadius: BorderRadius.circular(16),
-                  child: Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Row(
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              width: double.infinity,
+              color: AppColors.surface,
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        MemberAvatar(name: member.name, colorIndex: index, size: 52),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(member.name,
-                                  style: Theme.of(context).textTheme.titleMedium),
-                              const SizedBox(height: 2),
-                              Text(
-                                member.role?.label ?? '',
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                              const SizedBox(height: 6),
-                              StatusPill(
-                                label: member.isPlaceholder
-                                    ? 'No account yet'
-                                    : 'Account connected',
-                                background: member.isPlaceholder
-                                    ? AppColors.border
-                                    : AppColors.primary.withValues(alpha: 0.15),
-                                foreground: member.isPlaceholder
-                                    ? AppColors.textSecondary
-                                    : AppColors.primary,
-                              ),
-                            ],
-                          ),
+                        Text('Family', style: Theme.of(context).textTheme.headlineSmall),
+                        const SizedBox(height: 2),
+                        FutureBuilder<List<Member>>(
+                          future: _membersFuture,
+                          builder: (context, snapshot) {
+                            final count = snapshot.data?.length;
+                            final name = household?.name ?? 'Household';
+                            return Text(
+                              count != null
+                                  ? '$name · $count ${count == 1 ? 'member' : 'members'}'
+                                  : name,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            );
+                          },
                         ),
-                        const Icon(Icons.chevron_right_rounded, color: AppColors.border),
                       ],
                     ),
                   ),
-                ),
-              );
-            },
-          );
-        },
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    onPressed: _openAddChoiceSheet,
+                    icon: const Icon(Icons.add_rounded, size: 18),
+                    label: const Text('Add'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: FutureBuilder<List<Member>>(
+                future: _membersFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text(
+                        snapshot.error is ApiException
+                            ? (snapshot.error as ApiException).message
+                            : 'Something went wrong. Please try again.',
+                      ),
+                    );
+                  }
+
+                  final members = snapshot.data ?? const [];
+                  if (members.isEmpty) {
+                    return const Center(child: Text('No members yet.'));
+                  }
+
+                  return ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: members.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final member = members[index];
+                      final color = AppColors.memberColor(index);
+                      return Card(
+                        child: InkWell(
+                          onTap: () => setState(() => _selected = member),
+                          borderRadius: BorderRadius.circular(16),
+                          child: Padding(
+                            padding: const EdgeInsets.all(14),
+                            child: Row(
+                              children: [
+                                Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    MemberAvatar(
+                                        name: member.name, colorIndex: index, size: 52),
+                                    Positioned(
+                                      right: 0,
+                                      bottom: 0,
+                                      child: Container(
+                                        width: 12,
+                                        height: 12,
+                                        decoration: BoxDecoration(
+                                          color: color,
+                                          shape: BoxShape.circle,
+                                          border:
+                                              Border.all(color: Colors.white, width: 2),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(member.name,
+                                          style: Theme.of(context).textTheme.titleMedium),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        member.role?.label ?? '',
+                                        style: Theme.of(context).textTheme.bodySmall,
+                                      ),
+                                      const SizedBox(height: 6),
+                                      StatusPill(
+                                        label: member.isPlaceholder
+                                            ? 'No account yet'
+                                            : 'Account connected',
+                                        background: member.isPlaceholder
+                                            ? AppColors.border
+                                            : AppColors.primary.withValues(alpha: 0.15),
+                                        foreground: member.isPlaceholder
+                                            ? AppColors.textSecondary
+                                            : AppColors.primary,
+                                      ),
+                                      if (member.birthDate != null) ...[
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          '🎂 ${_formatDate(member.birthDate!)}',
+                                          style: Theme.of(context).textTheme.bodySmall,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                const Icon(Icons.chevron_right_rounded,
+                                    color: AppColors.border),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
+
+const _monthNames = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+String _formatDate(DateTime date) =>
+    '${_monthNames[date.month - 1]} ${date.day}, ${date.year}';
 
 class _MemberDetail extends ConsumerWidget {
   const _MemberDetail({required this.member, required this.householdId, required this.onBack});

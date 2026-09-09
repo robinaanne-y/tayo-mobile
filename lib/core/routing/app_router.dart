@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -12,6 +12,8 @@ import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/members/presentation/screens/activate_member_screen.dart';
 import '../../features/members/presentation/screens/family_screen.dart';
 import '../../features/members/presentation/screens/invite_member_screen.dart';
+import '../../shared/screens/coming_soon_screen.dart';
+import 'app_shell.dart';
 import 'deep_link_listener.dart';
 
 /// The most recent unhandled `tayo://invite/<token>` or
@@ -89,8 +91,48 @@ final routerProvider = Provider<GoRouter>((ref) {
           preview: state.extra as HouseholdVisualPreview?,
         ),
       ),
-      GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
-      GoRoute(path: '/family', builder: (context, state) => const FamilyScreen()),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            AppShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(routes: [
+            GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/calendar',
+              builder: (context, state) => const ComingSoonScreen(
+                title: 'Calendar',
+                icon: Icons.calendar_month_rounded,
+                message: 'Shared household scheduling is on its way.',
+              ),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/meals',
+              builder: (context, state) => const ComingSoonScreen(
+                title: 'Meals',
+                icon: Icons.restaurant_rounded,
+                message: 'Weekly meal planning is on its way.',
+              ),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/groceries',
+              builder: (context, state) => const ComingSoonScreen(
+                title: 'Groceries',
+                icon: Icons.shopping_basket_rounded,
+                message: 'A shared grocery list is on its way.',
+              ),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(path: '/family', builder: (context, state) => const FamilyScreen()),
+          ]),
+        ],
+      ),
       GoRoute(
         path: '/invite/:token',
         builder: (context, state) =>

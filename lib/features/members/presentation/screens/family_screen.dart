@@ -119,8 +119,10 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+            Container(
+              width: double.infinity,
+              color: AppColors.surface,
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

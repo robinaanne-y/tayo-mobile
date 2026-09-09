@@ -28,6 +28,10 @@ migrate_working_dir/
 **/ios/Flutter/.last_build_id
 **/macos/Flutter/ephemeral/
 **/macos/Flutter/GeneratedPluginRegistrant.swift
+# Web platform support was intentionally dropped from this repo, but
+# `flutter run -d chrome` silently regenerates the whole folder for local
+# testing. Ignore it rather than re-tracking a platform that isn't shipped.
+/web/
 .dart_tool/
 .flutter-plugins-dependencies
 .pub-cache/

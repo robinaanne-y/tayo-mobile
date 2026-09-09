@@ -148,6 +148,42 @@ class _InviteMemberScreenState extends ConsumerState<InviteMemberScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('👶', style: TextStyle(fontSize: 20)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text.rich(
+                            TextSpan(
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(color: AppColors.textPrimary, height: 1.4),
+                              children: const [
+                                TextSpan(
+                                  text: 'Have a baby or young child? ',
+                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                ),
+                                TextSpan(
+                                  text: 'Add them as a placeholder — no account '
+                                      "needed. They'll still appear in calendars, "
+                                      'meals, and trips.',
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -274,22 +310,39 @@ class _AddMemberFormState extends ConsumerState<_AddMemberForm> {
                   onTap: () => setState(() => _role = role),
                   child: Container(
                     margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
                     decoration: BoxDecoration(
                       color: selected ? AppColors.primary : AppColors.background,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                       border: Border.all(
                         color: selected ? AppColors.primary : AppColors.border,
                       ),
                     ),
                     alignment: Alignment.center,
-                    child: Text(
-                      role.label,
-                      style: TextStyle(
-                        color: selected ? Colors.white : AppColors.textPrimary,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12,
-                      ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _RoleIcon(role: role, selected: selected),
+                        const SizedBox(height: 8),
+                        Text(
+                          role.label,
+                          style: TextStyle(
+                            color: selected ? Colors.white : AppColors.textPrimary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          role.description,
+                          style: TextStyle(
+                            color: selected
+                                ? Colors.white.withValues(alpha: 0.85)
+                                : AppColors.textSecondary,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -316,5 +369,30 @@ class _AddMemberFormState extends ConsumerState<_AddMemberForm> {
         ],
       ),
     );
+  }
+}
+
+class _RoleIcon extends StatelessWidget {
+  const _RoleIcon({required this.role, required this.selected});
+
+  final HouseholdRole role;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (role) {
+      HouseholdRole.adult => Icon(
+          Icons.person_rounded,
+          color: selected ? Colors.white : AppColors.textSecondary,
+          size: 22,
+        ),
+      HouseholdRole.minor => const Text('🧒', style: TextStyle(fontSize: 20)),
+      HouseholdRole.child => const Text('👶', style: TextStyle(fontSize: 20)),
+      HouseholdRole.owner => Icon(
+          Icons.shield_rounded,
+          color: selected ? Colors.white : AppColors.textSecondary,
+          size: 22,
+        ),
+    };
   }
 }

@@ -1,9 +1,11 @@
 # Family Management App — Roadmap
 
-> **Status:** Phase 0 (Product & Technical Foundation) and the first slice of
-> Phase 1 (accounts, households, members) are implemented. See
-> `ARCHITECTURE.md` → "Foundation Implementation Notes" for exactly what
-> exists today and how to run it.
+> **Status:** Phase 0 (Product & Technical Foundation) is implemented, and
+> Phase 1 (accounts, households, members, invite links + QR, placeholder
+> activation) is implemented aside from a few UI-only items (user/household/
+> member profile editing, household switching). See `ARCHITECTURE.md` →
+> "Foundation Implementation Notes" for exactly what exists today and how
+> to run it.
 
 ## 1. Product Vision
 
@@ -98,7 +100,7 @@ A basic Flutter client can authenticate against Laravel and communicate with Pos
 
 ---
 
-# Phase 1 — Accounts & Households (in progress — core slice done)
+# Phase 1 — Accounts & Households (in progress — a few profile/settings screens remain)
 
 ## Features
 
@@ -109,8 +111,8 @@ A basic Flutter client can authenticate against Laravel and communicate with Pos
 - [ ] Household profile (richer view/settings)
 - [x] Add household members
 - [x] Adult/minor/child roles
-- [ ] Invite link
-- [ ] QR invitation
+- [x] Invite link
+- [x] QR invitation
 - [x] Placeholder members
 - [ ] Member profiles (detail/edit screen)
 - [x] Household membership
@@ -149,9 +151,12 @@ Previous household data remains associated
 
 Use a secure activation token/link rather than treating a permanent referral code as a credential.
 
-> Not yet implemented: the activation-token flow itself. The `members`
-> table already supports it (`user_id` nullable), but no token/claim
-> endpoints exist yet — deferred until invitations are needed.
+Implemented: `member_activation_tokens` + `household_invitations` tables,
+generate-link/claim/accept endpoints, and the mobile deep-link (`tayo://activate/<token>`,
+`tayo://invite/<token>`) screens. Invite/activation links also render as a
+QR code in the share sheet, and a camera-based scan screen (reachable from
+the Welcome screen, for someone joining their first household) decodes
+either kind and routes straight to the matching screen.
 
 ### Milestone
 
@@ -159,7 +164,9 @@ A user can:
 
 > Register → Create household → Add family members → Invite members → Manage household
 
-(Invite/QR flow still pending — everything before it works end to end.)
+Invite link and QR invitation (generate + scan) tested end to end,
+including a Playwright-driven run with a synthetic camera feed decoding a
+real invite QR through to the join-household preview.
 
 ---
 
@@ -590,7 +597,7 @@ The application has a sustainable monetization model based on household value ra
 | Phase | Focus | Priority | Target |
 |---|---|---|---|
 | 0 | Product + Architecture | Critical | Foundation ✅ |
-| 1 | Accounts + Households + Members | Critical | Core (in progress) |
+| 1 | Accounts + Households + Members | Critical | Core (nearly done — profile/settings screens remain) |
 | 2 | Home + Family Feed | Critical | Core |
 | 3 | Calendar + Scheduling | Critical | Core |
 | 4 | Family Requests | Critical | Core |

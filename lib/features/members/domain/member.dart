@@ -16,6 +16,14 @@ enum HouseholdRole {
         HouseholdRole.minor => 'Minor',
         HouseholdRole.child => 'Child',
       };
+
+  /// Short caption shown alongside [label] when picking a role.
+  String get description => switch (this) {
+        HouseholdRole.owner => 'Administrator',
+        HouseholdRole.adult => 'Full access',
+        HouseholdRole.minor => 'Limited access',
+        HouseholdRole.child => 'No account',
+      };
 }
 
 class Member {

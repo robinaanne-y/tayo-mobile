@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/screens/qr_scan_screen.dart';
 
 class _Slide {
   const _Slide({
@@ -59,6 +60,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     }
   }
 
+  void _openScanner() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const QrScanScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final slide = _slides[_current];
@@ -67,14 +74,22 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                child: TextButton(
-                  onPressed: () => context.go('/login'),
-                  child: const Text('Sign in'),
-                ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    onPressed: _openScanner,
+                    icon: const Icon(Icons.qr_code_scanner_rounded),
+                    tooltip: 'Scan invite code',
+                    color: AppColors.textSecondary,
+                  ),
+                  TextButton(
+                    onPressed: () => context.go('/login'),
+                    child: const Text('Sign in'),
+                  ),
+                ],
               ),
             ),
             Expanded(

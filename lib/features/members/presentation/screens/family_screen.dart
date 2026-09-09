@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/networking/api_exception.dart';
@@ -509,6 +510,31 @@ class _ShareLinkSheet extends StatelessWidget {
             border: Border.all(color: AppColors.border),
           ),
           child: Text(link, style: Theme.of(context).textTheme.bodySmall),
+        ),
+        const SizedBox(height: 16),
+        Center(
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: QrImageView(
+              data: link,
+              size: 160,
+              backgroundColor: Colors.white,
+              eyeStyle: const QrEyeStyle(color: AppColors.textPrimary),
+              dataModuleStyle: const QrDataModuleStyle(color: AppColors.textPrimary),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Center(
+          child: Text(
+            'Or have them scan this code from the app',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
         ),
         const SizedBox(height: 16),
         Row(

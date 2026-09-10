@@ -137,8 +137,14 @@ class HomeScreen extends ConsumerWidget {
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  AppCard(
+                  Container(
+                    width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                    ),
                     child: Column(
                       children: [
                         Container(

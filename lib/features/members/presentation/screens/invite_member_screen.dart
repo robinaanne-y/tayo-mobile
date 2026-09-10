@@ -8,7 +8,7 @@ import '../../../../shared/widgets/app_bottom_sheet.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/member_avatar.dart';
 import '../../../../shared/widgets/primary_button.dart';
-import '../../../auth/presentation/providers/auth_controller.dart';
+import '../../../households/presentation/providers/household_providers.dart';
 import '../../../households/presentation/screens/create_household_screen.dart';
 import '../../domain/member.dart';
 import '../providers/member_providers.dart';
@@ -25,10 +25,7 @@ class InviteMemberScreen extends ConsumerStatefulWidget {
 class _InviteMemberScreenState extends ConsumerState<InviteMemberScreen> {
   final List<Member> _added = [];
 
-  int? get _householdId {
-    final households = ref.read(authControllerProvider).user?.households;
-    return households != null && households.isNotEmpty ? households.first.id : null;
-  }
+  int? get _householdId => ref.read(currentHouseholdProvider)?.id;
 
   Future<void> _openAddSheet() async {
     final householdId = _householdId;
@@ -44,7 +41,7 @@ class _InviteMemberScreenState extends ConsumerState<InviteMemberScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final household = ref.watch(authControllerProvider).user?.households.firstOrNull;
+    final household = ref.watch(currentHouseholdProvider);
     final color = widget.preview?.color ?? AppColors.primary;
     final emoji = widget.preview?.emoji ?? '🏡';
 

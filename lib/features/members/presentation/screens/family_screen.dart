@@ -11,7 +11,6 @@ import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/member_avatar.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../../shared/widgets/status_pill.dart';
-import '../../../auth/presentation/providers/auth_controller.dart';
 import '../../../households/presentation/providers/household_providers.dart';
 import '../../domain/member.dart';
 import '../providers/member_providers.dart';
@@ -27,10 +26,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
   Future<List<Member>>? _membersFuture;
   Member? _selected;
 
-  int? get _householdId {
-    final households = ref.read(authControllerProvider).user?.households;
-    return households != null && households.isNotEmpty ? households.first.id : null;
-  }
+  int? get _householdId => ref.read(currentHouseholdProvider)?.id;
 
   @override
   void didChangeDependencies() {
@@ -104,6 +100,10 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(currentHouseholdProvider, (previous, next) {
+      if (previous?.id != next?.id) _reload();
+    });
+
     if (_selected != null) {
       return _MemberDetail(
         member: _selected!,
@@ -112,7 +112,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
       );
     }
 
-    final household = ref.watch(authControllerProvider).user?.households.firstOrNull;
+    final household = ref.watch(currentHouseholdProvider);
 
     return Scaffold(
       body: SafeArea(

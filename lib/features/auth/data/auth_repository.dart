@@ -66,6 +66,16 @@ class AuthRepository {
     );
   }
 
+  Future<AppUser> updateProfile({required String name, required String email}) async {
+    final response = await _apiClient.patch('/auth/me', data: {
+      'name': name,
+      'email': email,
+    });
+    return AppUser.fromJson(
+      (response.data as Map<String, dynamic>)['data'] as Map<String, dynamic>,
+    );
+  }
+
   Future<AppUser> _persistAndReturnUser(Map<String, dynamic> data) async {
     await _tokenStorage.saveToken(data['token'] as String);
     return AppUser.fromJson(data['data'] as Map<String, dynamic>);

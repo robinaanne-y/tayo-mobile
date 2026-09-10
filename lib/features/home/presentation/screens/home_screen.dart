@@ -7,7 +7,9 @@ import '../../../../shared/widgets/app_bottom_sheet.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../../shared/widgets/member_avatar.dart';
+import '../../../../shared/screens/coming_soon_screen.dart';
 import '../../../auth/presentation/providers/auth_controller.dart';
+import '../../../auth/presentation/screens/profile_screen.dart';
 import '../../../households/domain/household.dart';
 import '../../../households/presentation/providers/household_providers.dart';
 import '../../../members/presentation/providers/member_providers.dart';
@@ -267,6 +269,10 @@ class HomeScreen extends ConsumerWidget {
                     buttonLabel: 'Plan a trip',
                     onPressed: () => _notComingYet(context),
                   ),
+                  const SizedBox(height: 24),
+                  Text('More', style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  const _MoreRow(),
                   const SizedBox(height: 24),
                   Text('Household Status', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 12),
@@ -574,6 +580,129 @@ class _HouseholdStatusRow extends ConsumerWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+/// Chores, Map and Permissions are Phase 6/8/4 work that hasn't started —
+/// each opens the shared ComingSoonScreen rather than faking functionality.
+/// Profile is real: it opens the profile edit screen directly, since
+/// there's no dedicated settings/profile tab yet to house it.
+class _MoreRow extends StatelessWidget {
+  const _MoreRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _MoreTile(
+            icon: Icons.check_circle_rounded,
+            color: AppColors.primary,
+            label: 'Chores',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const ComingSoonScreen(
+                  title: 'Chores',
+                  icon: Icons.check_circle_rounded,
+                  message: 'Assigning and tracking chores is on its way.',
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _MoreTile(
+            icon: Icons.location_on_rounded,
+            color: AppColors.danger,
+            label: 'Map',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const ComingSoonScreen(
+                  title: 'Map',
+                  icon: Icons.location_on_rounded,
+                  message: "Seeing your family's location is on its way.",
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _MoreTile(
+            icon: Icons.shield_rounded,
+            color: AppColors.skyBlue,
+            label: 'Permissions',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const ComingSoonScreen(
+                  title: 'Permissions',
+                  icon: Icons.shield_rounded,
+                  message: 'Requesting and approving permissions is on its way.',
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _MoreTile(
+            icon: Icons.person_rounded,
+            color: AppColors.lavender,
+            label: 'Profile',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MoreTile extends StatelessWidget {
+  const _MoreTile({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      onTap: onTap,
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(height: 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              maxLines: 1,
+              style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 12),
+            ),
+          ),
+        ],
       ),
     );
   }

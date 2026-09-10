@@ -2,10 +2,10 @@
 
 > **Status:** Phase 0 (Product & Technical Foundation) is implemented, and
 > Phase 1 (accounts, households, members, invite links + QR, placeholder
-> activation) is implemented aside from a few UI-only items (user/household/
-> member profile editing, household switching). See `ARCHITECTURE.md` →
-> "Foundation Implementation Notes" for exactly what exists today and how
-> to run it.
+> activation, user profile editing, household switching) is implemented
+> aside from household profile settings and per-member profile editing. See
+> `ARCHITECTURE.md` → "Foundation Implementation Notes" for exactly what
+> exists today and how to run it.
 
 ## 1. Product Vision
 
@@ -100,13 +100,13 @@ A basic Flutter client can authenticate against Laravel and communicate with Pos
 
 ---
 
-# Phase 1 — Accounts & Households (in progress — a few profile/settings screens remain)
+# Phase 1 — Accounts & Households (in progress — household & member profile screens remain)
 
 ## Features
 
 - [x] Account registration
 - [x] Login/logout
-- [ ] User profile (edit)
+- [x] User profile (edit)
 - [x] Create household
 - [ ] Household profile (richer view/settings)
 - [x] Add household members
@@ -117,8 +117,8 @@ A basic Flutter client can authenticate against Laravel and communicate with Pos
 - [ ] Member profiles (detail/edit screen)
 - [x] Household membership
 - [x] Multiple household membership (data model + API support)
-- [ ] Household switching (UI)
-- [ ] Placeholder member activation
+- [x] Household switching (UI)
+- [x] Placeholder member activation
 - [x] Basic household permissions
 
 ## Placeholder Member Flow

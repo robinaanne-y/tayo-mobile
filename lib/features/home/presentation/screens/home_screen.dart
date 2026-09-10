@@ -6,9 +6,11 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_bottom_sheet.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../../../shared/widgets/section_header.dart';
+import '../../../../shared/widgets/member_avatar.dart';
 import '../../../auth/presentation/providers/auth_controller.dart';
 import '../../../households/domain/household.dart';
 import '../../../households/presentation/providers/household_providers.dart';
+import '../../../members/presentation/providers/member_providers.dart';
 
 const _weekdayNames = [
   'Monday',
@@ -265,6 +267,10 @@ class HomeScreen extends ConsumerWidget {
                     buttonLabel: 'Plan a trip',
                     onPressed: () => _notComingYet(context),
                   ),
+                  const SizedBox(height: 24),
+                  Text('Household Status', style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 12),
+                  const _HouseholdStatusRow(),
                 ],
               ),
             ),
@@ -505,6 +511,69 @@ class _HouseholdRow extends StatelessWidget {
               const SizedBox(width: 24, height: 24),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// A quick-glance row of household members. No real "where is everyone"
+/// data exists yet (that's Phase 8, deferred, and privacy-sensitive) — this
+/// shows who's in the household via their avatar and a decorative color
+/// dot, without fabricating a location.
+class _HouseholdStatusRow extends ConsumerWidget {
+  const _HouseholdStatusRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final members = ref.watch(currentHouseholdMembersProvider).valueOrNull ?? const [];
+    if (members.isEmpty) return const SizedBox.shrink();
+
+    return SizedBox(
+      height: 88,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: members.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 16),
+        itemBuilder: (context, index) {
+          final member = members[index];
+          final color = AppColors.memberColor(index);
+          return SizedBox(
+            width: 64,
+            child: Column(
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    MemberAvatar(name: member.name, colorIndex: index, size: 56),
+                    Positioned(
+                      right: 2,
+                      bottom: 2,
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  member.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

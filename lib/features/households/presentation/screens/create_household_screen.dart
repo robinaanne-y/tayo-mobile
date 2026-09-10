@@ -72,10 +72,14 @@ class _CreateHouseholdScreenState extends ConsumerState<CreateHouseholdScreen> {
     });
 
     try {
-      await ref
+      final household = await ref
           .read(householdRepositoryProvider)
           .create(_nameController.text.trim());
       await ref.read(authControllerProvider.notifier).refreshUser();
+      // Make the newly created household the active one — otherwise, when
+      // this isn't the user's first household, currentHouseholdProvider
+      // would keep pointing at whichever one was already selected.
+      ref.read(selectedHouseholdIdProvider.notifier).state = household.id;
       if (mounted) {
         context.go(
           '/invite-members',
@@ -92,6 +96,10 @@ class _CreateHouseholdScreenState extends ConsumerState<CreateHouseholdScreen> {
   @override
   Widget build(BuildContext context) {
     final name = _nameController.text.trim();
+    // Mandatory during first-time onboarding (no way out — you must create
+    // a household to proceed). Reached later from the household switcher
+    // to create an *additional* one, it's optional, so offer a close button.
+    final canLeave = ref.watch(authControllerProvider).hasHousehold;
 
     return Scaffold(
       body: SafeArea(
@@ -100,6 +108,14 @@ class _CreateHouseholdScreenState extends ConsumerState<CreateHouseholdScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (canLeave)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => context.go('/home'),
+                  ),
+                ),
               Row(
                 children: [1, 2].map((s) {
                   final active = s <= _step;

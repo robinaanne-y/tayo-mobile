@@ -71,9 +71,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         return onboardingRoutes.contains(location) ? null : '/create-household';
       }
 
-      final shouldLeaveAuthRoutes = location == '/splash' ||
-          loggedOutRoutes.contains(location) ||
-          location == '/create-household';
+      // /create-household is deliberately NOT included here once the user
+      // already has a household — unlike the onboarding case above, this
+      // lets an existing user navigate there again to create an
+      // *additional* household (e.g. from the household switcher).
+      final shouldLeaveAuthRoutes =
+          location == '/splash' || loggedOutRoutes.contains(location);
 
       return shouldLeaveAuthRoutes ? '/home' : null;
     },

@@ -35,6 +35,32 @@ class MemberRepository {
     );
   }
 
+  Future<Member> update({
+    required int householdId,
+    required int memberId,
+    required String name,
+    // Null for the Owner's own row — that role is immutable server-side,
+    // and the field is rejected outright if sent at all (see
+    // UpdateMemberRequest on the backend).
+    required HouseholdRole? role,
+    DateTime? birthDate,
+  }) async {
+    final response = await _apiClient.patch(
+      '/households/$householdId/members/$memberId',
+      data: {
+        'name': name,
+        if (role != null) 'role': role.name,
+        if (birthDate != null)
+          'birth_date':
+              '${birthDate.year.toString().padLeft(4, '0')}-${birthDate.month.toString().padLeft(2, '0')}-${birthDate.day.toString().padLeft(2, '0')}',
+      },
+    );
+
+    return Member.fromJson(
+      (response.data as Map<String, dynamic>)['data'] as Map<String, dynamic>,
+    );
+  }
+
   Future<ActivationLink> createActivationLink({
     required int householdId,
     required int memberId,

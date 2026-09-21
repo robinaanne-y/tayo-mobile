@@ -47,6 +47,13 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
     });
   }
 
+  void _onMemberUpdated(Member updated) {
+    setState(() {
+      _selected = updated;
+      _membersFuture = _loadMembers();
+    });
+  }
+
   Future<void> _openAddMemberSheet() async {
     final householdId = _householdId;
     if (householdId == null) return;
@@ -109,6 +116,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
         member: _selected!,
         householdId: _householdId,
         onBack: () => setState(() => _selected = null),
+        onUpdated: _onMemberUpdated,
       );
     }
 
@@ -313,11 +321,29 @@ String _formatDate(DateTime date) =>
     '${_monthNames[date.month - 1]} ${date.day}, ${date.year}';
 
 class _MemberDetail extends ConsumerWidget {
-  const _MemberDetail({required this.member, required this.householdId, required this.onBack});
+  const _MemberDetail({
+    required this.member,
+    required this.householdId,
+    required this.onBack,
+    required this.onUpdated,
+  });
 
   final Member member;
   final int? householdId;
   final VoidCallback onBack;
+  final ValueChanged<Member> onUpdated;
+
+  Future<void> _edit(BuildContext context, WidgetRef ref) async {
+    final id = householdId;
+    if (id == null) return;
+
+    final updated = await showAppBottomSheet<Member>(
+      context: context,
+      builder: (context) => _EditMemberSheet(householdId: id, member: member),
+    );
+
+    if (updated != null) onUpdated(updated);
+  }
 
   Future<void> _activate(BuildContext context, WidgetRef ref) async {
     final id = householdId;
@@ -353,6 +379,13 @@ class _MemberDetail extends ConsumerWidget {
           onPressed: onBack,
         ),
         title: Text(member.name),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_rounded),
+            tooltip: 'Edit',
+            onPressed: () => _edit(context, ref),
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
@@ -507,6 +540,136 @@ class _AddMemberSheetState extends ConsumerState<_AddMemberSheet> {
           const SizedBox(height: 16),
           PrimaryButton(
             label: 'Add member',
+            isLoading: _isLoading,
+            onPressed: _submit,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EditMemberSheet extends ConsumerStatefulWidget {
+  const _EditMemberSheet({required this.householdId, required this.member});
+
+  final int householdId;
+  final Member member;
+
+  @override
+  ConsumerState<_EditMemberSheet> createState() => _EditMemberSheetState();
+}
+
+class _EditMemberSheetState extends ConsumerState<_EditMemberSheet> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameController;
+  late HouseholdRole _role;
+  DateTime? _birthDate;
+
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  bool get _isOwner => widget.member.role == HouseholdRole.owner;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.member.name);
+    _role = widget.member.role ?? HouseholdRole.adult;
+    _birthDate = widget.member.birthDate;
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickBirthDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _birthDate ?? DateTime(now.year - 8),
+      firstDate: DateTime(now.year - 100),
+      lastDate: now,
+    );
+    if (picked != null) setState(() => _birthDate = picked);
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final updated = await ref.read(memberRepositoryProvider).update(
+            householdId: widget.householdId,
+            memberId: widget.member.id,
+            name: _nameController.text.trim(),
+            // The Owner's role is immutable and rejected outright if sent
+            // at all — omit it rather than echoing it back.
+            role: _isOwner ? null : _role,
+            birthDate: _birthDate,
+          );
+      if (mounted) Navigator.of(context).pop(updated);
+    } on ApiException catch (e) {
+      setState(() => _errorMessage = e.message);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Edit member', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 16),
+          if (_errorMessage != null) ...[
+            Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+            const SizedBox(height: 16),
+          ],
+          AppTextField(
+            label: 'Name',
+            controller: _nameController,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Name is required';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          if (_isOwner)
+            _DetailRow(label: 'Role', value: HouseholdRole.owner.label)
+          else
+            DropdownButtonFormField<HouseholdRole>(
+              initialValue: _role,
+              decoration: const InputDecoration(labelText: 'Role'),
+              items: HouseholdRole.values
+                  .where((r) => r != HouseholdRole.owner)
+                  .map((role) => DropdownMenuItem(value: role, child: Text(role.label)))
+                  .toList(),
+              onChanged: (value) => setState(() => _role = value ?? _role),
+            ),
+          const SizedBox(height: 16),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(_birthDate == null
+                ? 'Birth date (optional)'
+                : '${_birthDate!.year}-${_birthDate!.month.toString().padLeft(2, '0')}-${_birthDate!.day.toString().padLeft(2, '0')}'),
+            trailing: const Icon(Icons.calendar_today_rounded),
+            onTap: _pickBirthDate,
+          ),
+          const SizedBox(height: 16),
+          PrimaryButton(
+            label: 'Save changes',
             isLoading: _isLoading,
             onPressed: _submit,
           ),

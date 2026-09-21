@@ -12,4 +12,12 @@ class Env {
     'API_BASE_URL',
     defaultValue: 'http://127.0.0.1:8000/api/v1',
   );
+
+  /// Scheme + host (+ port) only, e.g. `http://127.0.0.1:8000` — for
+  /// resolving relative media paths like a member's `avatar_url`, which
+  /// the backend deliberately returns without a host baked in.
+  static String get mediaBaseUrl {
+    final uri = Uri.parse(apiBaseUrl);
+    return uri.replace(path: '', query: '').toString();
+  }
 }

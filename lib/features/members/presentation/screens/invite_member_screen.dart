@@ -100,7 +100,11 @@ class _InviteMemberScreenState extends ConsumerState<InviteMemberScreen> {
                   for (var i = 0; i < _added.length; i++) ...[
                     Card(
                       child: ListTile(
-                        leading: MemberAvatar(name: _added[i].name, colorIndex: i),
+                        leading: MemberAvatar(
+                          name: _added[i].name,
+                          colorIndex: i,
+                          avatarUrl: _added[i].avatarUrl,
+                        ),
                         title: Text(_added[i].name),
                         subtitle: Text(_added[i].role?.label ?? ''),
                       ),

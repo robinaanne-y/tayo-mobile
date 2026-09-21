@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -232,7 +233,11 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
                                   clipBehavior: Clip.none,
                                   children: [
                                     MemberAvatar(
-                                        name: member.name, colorIndex: index, size: 52),
+                                      name: member.name,
+                                      colorIndex: index,
+                                      avatarUrl: member.avatarUrl,
+                                      size: 52,
+                                    ),
                                     Positioned(
                                       right: 0,
                                       bottom: 0,
@@ -345,6 +350,51 @@ class _MemberDetail extends ConsumerWidget {
     if (updated != null) onUpdated(updated);
   }
 
+  Future<void> _pickAndUploadAvatar(BuildContext context, WidgetRef ref) async {
+    final id = householdId;
+    if (id == null) return;
+
+    final source = await showAppBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.photo_camera_rounded, color: AppColors.primary),
+            title: const Text('Take a photo'),
+            onTap: () => Navigator.of(context).pop(ImageSource.camera),
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_library_rounded, color: AppColors.primary),
+            title: const Text('Choose from gallery'),
+            onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+          ),
+        ],
+      ),
+    );
+    if (source == null) return;
+
+    final picked = await ImagePicker().pickImage(
+      source: source,
+      maxWidth: 1024,
+      imageQuality: 85,
+    );
+    if (picked == null) return;
+
+    try {
+      final updated = await ref.read(memberRepositoryProvider).uploadAvatar(
+            householdId: id,
+            memberId: member.id,
+            filePath: picked.path,
+          );
+      onUpdated(updated);
+    } on ApiException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    }
+  }
+
   Future<void> _activate(BuildContext context, WidgetRef ref) async {
     final id = householdId;
     if (id == null) return;
@@ -390,7 +440,43 @@ class _MemberDetail extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Center(child: MemberAvatar(name: member.name, colorIndex: 0, size: 76)),
+          Center(
+            child: GestureDetector(
+              onTap: () => _pickAndUploadAvatar(context, ref),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  MemberAvatar(
+                    name: member.name,
+                    colorIndex: 0,
+                    avatarUrl: member.avatarUrl,
+                    size: 76,
+                  ),
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      alignment: Alignment.center,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                        border: Border.fromBorderSide(
+                          BorderSide(color: Colors.white, width: 2),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.photo_camera_rounded,
+                        color: Colors.white,
+                        size: 15,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: 20),
           _DetailRow(label: 'Role', value: member.role?.label ?? '—'),
           _DetailRow(

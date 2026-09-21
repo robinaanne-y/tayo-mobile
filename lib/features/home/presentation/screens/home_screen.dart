@@ -550,7 +550,12 @@ class _HouseholdStatusRow extends ConsumerWidget {
                 Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    MemberAvatar(name: member.name, colorIndex: index, size: 56),
+                    MemberAvatar(
+                      name: member.name,
+                      colorIndex: index,
+                      avatarUrl: member.avatarUrl,
+                      size: 56,
+                    ),
                     Positioned(
                       right: 2,
                       bottom: 2,

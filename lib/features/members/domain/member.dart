@@ -31,6 +31,7 @@ class Member {
     required this.id,
     required this.name,
     this.birthDate,
+    this.avatarUrl,
     required this.isPlaceholder,
     this.role,
   });
@@ -38,6 +39,7 @@ class Member {
   final int id;
   final String name;
   final DateTime? birthDate;
+  final String? avatarUrl;
   final bool isPlaceholder;
   final HouseholdRole? role;
 
@@ -48,6 +50,7 @@ class Member {
       birthDate: json['birth_date'] != null
           ? DateTime.parse(json['birth_date'] as String)
           : null,
+      avatarUrl: json['avatar_url'] as String?,
       isPlaceholder: json['is_placeholder'] as bool? ?? false,
       role: HouseholdRole.fromValue(json['role'] as String?),
     );

@@ -817,23 +817,33 @@ Do not rely on the mobile application being open to perform server-side schedule
 
 # 21. File Storage
 
-Use Amazon S3 for files when file storage is introduced.
+**Implemented today:** member avatar photos. The API stores uploads on its
+local `public` disk (`avatars/{file}`, referenced by `members.avatar_path`)
+and returns a **relative** URL (`/storage/avatars/{file}`) rather than an
+absolute one — the backend's `APP_URL` only resolves on the machine running
+it, not on a phone reaching the API over LAN. The mobile client resolves
+that relative path against `Env.mediaBaseUrl` (the API host, derived from
+`API_BASE_URL` with the path stripped) before rendering it with
+`Image.network`. Upload goes through `image_picker` (camera or gallery) and
+a dedicated multipart `POST .../members/{member}/avatar` endpoint.
 
-Potential files:
+Amazon S3 remains the plan for when file storage needs outgrow a single
+local disk (larger household/trip attachments, CDN delivery, multi-instance
+deployment) — see `ARCHITECTURE.md` (API repo) ADR-007 and the API
+roadmap's Infrastructure Introduction Order (Phase 8). Moving to S3 means
+the API starts returning absolute URLs again, which is a breaking change to
+`avatar_url`'s contract, not just a storage-backend swap.
 
-- Profile images
-- Household images
-- Trip attachments
-- Future family documents
-
-The database stores metadata and references rather than large binary files.
+Other potential future files (household images, trip attachments, family
+documents) are not yet implemented and should follow the same
+metadata-in-Postgres, blob-in-object-storage split once they arrive:
 
 ```text
 PostgreSQL
    ↓
-file metadata / S3 key
+file metadata / storage key
 
-S3
+S3 (or local disk, pre-Phase 8)
    ↓
 actual file
 ```
@@ -1432,17 +1442,19 @@ section; this is the consolidated setup/reference view.
 
 ## Project locations
 
-Two separate project roots (no monorepo):
+Two separate project roots (no monorepo), both under the `tayo` parent
+folder (the app was renamed from an earlier "Homi" working name — if you
+see `homi`/`homi-api` paths or ports elsewhere, they're stale):
 
 ```text
-Flutter app:  c:\Users\Robina\Projects\Flutter\homi
-Laravel API:  c:\Users\Robina\Projects\laragon\www\homi-api
+Flutter app:  C:\Users\Robina\Projects\laragon\www\tayo\tayo-mobile
+Laravel API:  C:\Users\Robina\Projects\laragon\www\tayo\tayo-api
 ```
 
 ## Backend setup
 
 ```bash
-cd c:\Users\Robina\Projects\laragon\www\homi-api
+cd C:\Users\Robina\Projects\laragon\www\tayo\tayo-api
 
 # 1. Start Postgres (requires Docker Desktop + WSL2)
 docker compose up -d
@@ -1451,12 +1463,15 @@ docker compose up -d
 composer install
 cp .env.example .env   # already has pgsql pointed at the compose service
 php artisan key:generate
+php artisan storage:link   # required for member avatar uploads to be servable
 
 # 3. Migrate
 php artisan migrate
 
-# 4. Run
-php artisan serve --port=8010
+# 4. Run — bind 0.0.0.0 (not the 127.0.0.1 default) so a phone on the
+# same LAN can reach it; a phone will fail to load anything, including
+# avatars, against a server bound only to loopback.
+php artisan serve --host=0.0.0.0 --port=8000
 ```
 
 `pdo_pgsql`/`pgsql` were enabled in this machine's Laragon PHP 8.3
@@ -1470,38 +1485,54 @@ Docker. The automated test suite always uses in-memory sqlite regardless
 (configured in `phpunit.xml`), so `php artisan test` works with zero setup
 either way.
 
-Run tests: `php artisan test` (23 passing).
+Run tests: `php artisan test` (61 passing).
 
 ## Flutter setup
 
 ```bash
-cd c:\Users\Robina\Projects\Flutter\homi
+cd C:\Users\Robina\Projects\laragon\www\tayo\tayo-mobile
 flutter pub get
 
-# Point at the API — 127.0.0.1 works for iOS simulator/desktop/web;
-# Android emulator needs 10.0.2.2 instead of 127.0.0.1:
-flutter run --dart-define=API_BASE_URL=http://127.0.0.1:8010/api/v1
+# Point at the API. 127.0.0.1 works for iOS simulator/desktop/web;
+# Android emulator needs 10.0.2.2 instead of 127.0.0.1; a physical
+# device (wireless-adb or USB) needs the dev machine's LAN IP, matching
+# whatever host the API server above is actually reachable on:
+flutter run --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
 ```
+
+`Env.mediaBaseUrl` (used to resolve relative file URLs like member
+avatars) is derived from `API_BASE_URL` automatically — no separate
+dart-define needed.
 
 Run tests: `flutter test` (5 passing). Static analysis: `flutter analyze`
 (clean).
 
 ## What's implemented
 
-- Register, login, logout, `/auth/me` (Sanctum bearer tokens)
+- Register, login, logout, `/auth/me` (Sanctum bearer tokens), and user
+  profile editing
 - Create household (creator becomes Owner; reuses an existing Member
   profile if the user already has one from another household)
-- List my households, view/update a household (Owner-only update)
-- Add a household member (Owner/Adult only), list members
+- List my households, view/update a household (Owner-only update),
+  switch between households
+- Add a household member (Owner/Adult only), list members, edit a
+  member's name/birth date/role (Owner's own role is immutable), replace
+  a member's avatar photo (camera or gallery)
+- Household invitations (link + QR) and placeholder-member activation
+  (link + QR), verified end to end including on a physical Android
+  device over wireless ADB
 - Full authorization via `HouseholdPolicy`, enforced server-side only
-- Flutter: splash → login/register → create-household → home, all driven
-  by `go_router` redirects off a single `AuthController` (Riverpod)
-- Home screen and member-management screen are functional but
-  intentionally minimal placeholders per the roadmap
+- Flutter: splash → login/register → create-household → invite members →
+  home, all driven by `go_router` redirects off a single `AuthController`
+  (Riverpod)
+- Home and Family screens are functional past the initial placeholder
+  stage — see the Home & Family screen redesign work for current visual
+  state
 
 ## What's deliberately not implemented yet
 
-- Invitations / QR / placeholder-member activation (Phase 1 remainder)
 - `/api/v1/home` aggregation endpoint (Phase 2)
+- Richer household profile/settings (avatar, timezone, etc. — no mobile
+  UI defined yet)
 - Everything from Calendar onward (Phase 3+)
-- Git repository / CI pipeline for either project
+- CI pipeline for either project (both are now git repositories)

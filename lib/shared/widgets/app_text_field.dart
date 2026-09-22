@@ -10,6 +10,7 @@ class AppTextField extends StatelessWidget {
     this.validator,
     this.errorText,
     this.autofillHints,
+    this.enabled = true,
   });
 
   final String label;
@@ -19,6 +20,7 @@ class AppTextField extends StatelessWidget {
   final String? Function(String?)? validator;
   final String? errorText;
   final Iterable<String>? autofillHints;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +30,7 @@ class AppTextField extends StatelessWidget {
       keyboardType: keyboardType,
       validator: validator,
       autofillHints: autofillHints,
+      enabled: enabled,
       decoration: InputDecoration(
         labelText: label,
         errorText: errorText,

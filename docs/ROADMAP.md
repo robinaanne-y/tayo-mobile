@@ -3,7 +3,7 @@
 > **Status:** Phase 0 (Product & Technical Foundation) is implemented, and
 > Phase 1 (accounts, households, members, invite links + QR, placeholder
 > activation, user profile editing, household switching, member profile
-> editing) is implemented aside from richer household settings. See
+> editing, household profile settings) is fully implemented. See
 > `ARCHITECTURE.md` → "Foundation Implementation Notes" for exactly what
 > exists today and how to run it.
 
@@ -100,7 +100,7 @@ A basic Flutter client can authenticate against Laravel and communicate with Pos
 
 ---
 
-# Phase 1 — Accounts & Households (in progress — household settings screen remains)
+# Phase 1 — Accounts & Households ✅ Done
 
 ## Features
 
@@ -108,7 +108,7 @@ A basic Flutter client can authenticate against Laravel and communicate with Pos
 - [x] Login/logout
 - [x] User profile (edit)
 - [x] Create household
-- [ ] Household profile (richer view/settings)
+- [x] Household profile (richer view/settings)
 - [x] Add household members
 - [x] Adult/minor/child roles
 - [x] Invite link
@@ -178,6 +178,21 @@ for that case rather than resent, since the backend rejects `role`
 being present at all for that row. Verified on a real Android device,
 including a round-trip bug (submitting the Owner's own unchanged role
 value failed validation) found and fixed during that testing.
+
+## Household Profile Settings
+
+An Owner can rename the household and change its accent color/emoji from
+a new Household Settings screen (gear icon on the Family tab). The same
+color/emoji palette offered at creation time is reused here; a non-Owner
+can open the screen to see current settings but can't edit them. Color
+and emoji are now persisted server-side (`households.color`/`.emoji`) and
+used everywhere a household is shown — the home header pill, the welcome
+card, and the household switcher — replacing the fixed 🏡 placeholder and
+the `HouseholdVisualPreview`-only approach from initial household
+creation. Verified end to end with a Playwright run: create a household
+with a chosen color/emoji, confirm it renders correctly on Home, edit it
+from Household Settings, and confirm the change round-trips through the
+real API and is reflected back on the Family screen.
 
 ---
 

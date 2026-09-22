@@ -90,9 +90,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/invite-members',
-        builder: (context, state) => InviteMemberScreen(
-          preview: state.extra as HouseholdVisualPreview?,
-        ),
+        builder: (context, state) => const InviteMemberScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>

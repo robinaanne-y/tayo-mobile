@@ -13,6 +13,7 @@ import '../../../../shared/widgets/member_avatar.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../../shared/widgets/status_pill.dart';
 import '../../../households/presentation/providers/household_providers.dart';
+import '../../../households/presentation/screens/household_settings_screen.dart';
 import '../../domain/member.dart';
 import '../providers/member_providers.dart';
 
@@ -163,6 +164,18 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.settings_rounded),
+                    tooltip: 'Household settings',
+                    onPressed: household == null
+                        ? null
+                        : () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    HouseholdSettingsScreen(household: household),
+                              ),
+                            ),
+                  ),
                   Material(
                     color: AppColors.primary,
                     borderRadius: BorderRadius.circular(999),

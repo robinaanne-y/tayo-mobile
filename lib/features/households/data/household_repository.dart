@@ -14,9 +14,11 @@ class HouseholdRepository {
         .toList();
   }
 
-  Future<Household> create(String name) async {
+  Future<Household> create(String name, {String? color, String? emoji}) async {
     final response = await _apiClient.post('/households', data: {
       'name': name,
+      if (color != null) 'color': color,
+      if (emoji != null) 'emoji': emoji,
     });
     return Household.fromJson(
       (response.data as Map<String, dynamic>)['data'] as Map<String, dynamic>,
@@ -30,9 +32,16 @@ class HouseholdRepository {
     );
   }
 
-  Future<Household> update(int householdId, String name) async {
+  Future<Household> update({
+    required int householdId,
+    String? name,
+    String? color,
+    String? emoji,
+  }) async {
     final response = await _apiClient.patch('/households/$householdId', data: {
-      'name': name,
+      if (name != null) 'name': name,
+      if (color != null) 'color': color,
+      if (emoji != null) 'emoji': emoji,
     });
     return Household.fromJson(
       (response.data as Map<String, dynamic>)['data'] as Map<String, dynamic>,

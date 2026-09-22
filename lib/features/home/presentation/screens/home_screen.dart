@@ -11,6 +11,7 @@ import '../../../../shared/screens/coming_soon_screen.dart';
 import '../../../auth/presentation/providers/auth_controller.dart';
 import '../../../auth/presentation/screens/profile_screen.dart';
 import '../../../households/domain/household.dart';
+import '../../../households/presentation/household_visuals.dart';
 import '../../../households/presentation/providers/household_providers.dart';
 import '../../../members/presentation/providers/member_providers.dart';
 
@@ -65,6 +66,8 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final household = ref.watch(currentHouseholdProvider);
     final greeting = _greeting;
+    final householdColor = householdColorFromHex(household?.color);
+    final householdEmoji = household?.emoji ?? kHouseholdEmojis.first;
 
     return Scaffold(
       body: SafeArea(
@@ -120,25 +123,25 @@ class HomeScreen extends ConsumerWidget {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
+                        color: householdColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text('🏡', style: TextStyle(fontSize: 14)),
+                          Text(householdEmoji, style: const TextStyle(fontSize: 14)),
                           const SizedBox(width: 6),
                           Text(
                             household?.name ?? 'Household',
-                            style: const TextStyle(
-                              color: AppColors.primary,
+                            style: TextStyle(
+                              color: householdColor,
                               fontWeight: FontWeight.w700,
                               fontSize: 13,
                             ),
                           ),
-                          const Icon(
+                          Icon(
                             Icons.keyboard_arrow_down_rounded,
-                            color: AppColors.primary,
+                            color: householdColor,
                             size: 18,
                           ),
                         ],
@@ -161,10 +164,10 @@ class HomeScreen extends ConsumerWidget {
                           height: 72,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.15),
+                            color: householdColor.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: const Text('🏡', style: TextStyle(fontSize: 36)),
+                          child: Text(householdEmoji, style: const TextStyle(fontSize: 36)),
                         ),
                         const SizedBox(height: 16),
                         Text(
@@ -373,8 +376,6 @@ class _EmptyStateCard extends StatelessWidget {
   }
 }
 
-const _householdSwitcherEmojis = ['🏡', '⭐', '🌿', '🍀', '☀️'];
-
 /// Opened by tapping the household pill. Lists every household the user
 /// belongs to and lets them pick which one is "active" app-wide, plus the
 /// only paths out of here that exist today: creating a new household, or
@@ -401,8 +402,7 @@ class _HouseholdSwitcherSheet extends ConsumerWidget {
         for (var i = 0; i < households.length; i++) ...[
           _HouseholdRow(
             household: households[i],
-            emoji: _householdSwitcherEmojis[i % _householdSwitcherEmojis.length],
-            colorIndex: i,
+            fallbackIndex: i,
             selected: households[i].id == current?.id,
             onTap: () => Navigator.of(context).pop(households[i].id),
           ),
@@ -454,21 +454,22 @@ class _HouseholdSwitcherSheet extends ConsumerWidget {
 class _HouseholdRow extends StatelessWidget {
   const _HouseholdRow({
     required this.household,
-    required this.emoji,
-    required this.colorIndex,
+    required this.fallbackIndex,
     required this.selected,
     required this.onTap,
   });
 
   final Household household;
-  final String emoji;
-  final int colorIndex;
+  final int fallbackIndex;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final color = AppColors.memberColor(colorIndex);
+    final color = household.color != null
+        ? householdColorFromHex(household.color)
+        : AppColors.memberColor(fallbackIndex);
+    final emoji = household.emoji ?? kHouseholdEmojis[fallbackIndex % kHouseholdEmojis.length];
     final count = household.memberCount;
 
     return InkWell(

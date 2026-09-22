@@ -8,15 +8,13 @@ import '../../../../shared/widgets/app_bottom_sheet.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/member_avatar.dart';
 import '../../../../shared/widgets/primary_button.dart';
+import '../../../households/presentation/household_visuals.dart';
 import '../../../households/presentation/providers/household_providers.dart';
-import '../../../households/presentation/screens/create_household_screen.dart';
 import '../../domain/member.dart';
 import '../providers/member_providers.dart';
 
 class InviteMemberScreen extends ConsumerStatefulWidget {
-  const InviteMemberScreen({super.key, this.preview});
-
-  final HouseholdVisualPreview? preview;
+  const InviteMemberScreen({super.key});
 
   @override
   ConsumerState<InviteMemberScreen> createState() => _InviteMemberScreenState();
@@ -42,8 +40,8 @@ class _InviteMemberScreenState extends ConsumerState<InviteMemberScreen> {
   @override
   Widget build(BuildContext context) {
     final household = ref.watch(currentHouseholdProvider);
-    final color = widget.preview?.color ?? AppColors.primary;
-    final emoji = widget.preview?.emoji ?? '🏡';
+    final color = householdColorFromHex(household?.color);
+    final emoji = household?.emoji ?? kHouseholdEmojis.first;
 
     return Scaffold(
       body: SafeArea(

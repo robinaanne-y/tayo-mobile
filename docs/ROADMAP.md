@@ -3,9 +3,11 @@
 > **Status:** Phase 0 (Product & Technical Foundation) is implemented, and
 > Phase 1 (accounts, households, members, invite links + QR, placeholder
 > activation, user profile editing, household switching, member profile
-> editing, household profile settings) is fully implemented. See
-> `ARCHITECTURE.md` → "Foundation Implementation Notes" for exactly what
-> exists today and how to run it.
+> editing, household profile settings) is fully implemented. Phase 2 (Home
+> & Family Feed) is in progress — the Home screen layout and Family Notes
+> are real; the rest of the feed is an honest empty state until Phases 3-7
+> land. See `ARCHITECTURE.md` → "Foundation Implementation Notes" for
+> exactly what exists today and how to run it.
 
 ## 1. Product Vision
 
@@ -196,25 +198,46 @@ real API and is reflected back on the Family screen.
 
 ---
 
-# Phase 2 — Home & Family Feed
+# Phase 2 — Home & Family Feed (in progress — most sections wait on Phases 3-7)
 
 ## Features
 
-- Today's schedule
-- Upcoming events
-- Family notes
-- 24-hour note expiration
-- Announcements
-- Reminders
-- Pending requests
-- Today's meal
-- Grocery summary
-- Upcoming trip summary
-- Household status
+- [x] Family notes (create, list, delete, 24-hour expiration)
+- [ ] Today's schedule (Home UI redesigned to match the mockup; the data
+      itself is a read-through of Calendar events, so it stays an honest
+      empty state until Phase 3 ships)
+- [ ] Upcoming events (same — Phase 3)
+- [ ] Announcements (own table/CRUD, not yet built)
+- [ ] Reminders (Phase 9 — read-through of other modules' due dates, no
+      dedicated table)
+- [ ] Pending requests / "Needs Your Attention" (Home section redesigned
+      with an honest "all caught up" empty state; real data is Phase 4)
+- [ ] Today's meal (Home UI redesigned; data is Phase 5)
+- [ ] Grocery summary (Home UI redesigned; data is Phase 5/6)
+- [ ] Upcoming trip summary (data is Phase 7)
+- [x] Household status (member avatars row — shipped earlier alongside
+      household switching)
+
+Home's layout was redesigned to match a full "family feed" mockup: the
+onboarding-style Welcome/Get-Started card is gone (member invites now
+live on the Family tab), each section has a title + right-aligned action
+link ("See all", "+ Add note", "Request meal", "View list"), and every
+section without a backing feature yet renders its real empty state rather
+than fabricated sample data — consistent with how Household Status and
+the original Today's Schedule card already worked.
 
 ## Family Notes
 
-Temporary refrigerator-style messages.
+Temporary refrigerator-style messages. Implemented: `family_notes` table
+(`household_id`, `author_member_id`, `content`, `expires_at`), `GET`/`POST`/`DELETE
+/api/v1/households/{household}/notes`. Any household member (including a
+minor or child) can leave a note; only the author or an Owner/Adult can
+delete one. Notes are visible for 24 hours, then excluded from the list
+query and eventually purged by an hourly scheduled job (not
+exact-to-the-second — the query-time filter is what keeps the list
+correct in the meantime). Verified end to end with Playwright: post a
+note, see it render with author + "Xh left", delete it, confirm it
+round-trips through the real API back to the empty state.
 
 Examples:
 
@@ -222,21 +245,30 @@ Examples:
 - "Pizza tonight!"
 - "Please remember your umbrella."
 
-Notes are visible for 24 hours and then expire.
-
 ## Announcements
 
-Longer-lived household messages.
+Longer-lived household messages. Not yet built — deferred until there's a
+concrete UI need for something longer-lived than a Family Note.
 
 ## Home Principle
 
-Home is an aggregation of information from other modules. It should not become a separate source of duplicate data.
+Home is an aggregation of information from other modules. It should not
+become a separate source of duplicate data. A dedicated `GET /api/v1/home`
+aggregation endpoint (per the API roadmap) is deferred until there are
+enough real sources to justify it — right now Family Notes is the only
+section with real data, so the mobile client just calls its own endpoint
+directly.
 
 ### Milestone
 
 Opening the app immediately answers:
 
 > **"What's happening with my family today?"**
+
+Partially met: the layout and Family Notes are real; the rest of the feed
+(schedule, requests, meals, groceries, trips) will fill in as Phases 3-7
+land, without needing another Home redesign — the sections are already
+in place.
 
 ---
 

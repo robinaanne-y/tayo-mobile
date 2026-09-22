@@ -19,12 +19,15 @@ import '../../../households/presentation/household_visuals.dart';
 import '../../../households/presentation/providers/household_providers.dart';
 import '../../../members/presentation/providers/member_providers.dart';
 
+/// Base hues for note cards — a light tint is used as the background, a
+/// darker shade of the same hue as the border, so each note reads as one
+/// coherent color rather than a flat pastel block.
 const _kNoteColors = [
-  Color(0xFFFFF6D9),
-  Color(0xFFFFE3DE),
-  Color(0xFFE3F2FF),
-  Color(0xFFEFE7FB),
-  Color(0xFFE3F7EA),
+  AppColors.softYellow,
+  AppColors.accent,
+  AppColors.skyBlue,
+  AppColors.lavender,
+  AppColors.primary,
 ];
 
 String _timeLeftLabel(DateTime expiresAt) {
@@ -422,8 +425,9 @@ class _FamilyNotesSection extends ConsumerWidget {
                     width: 180,
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: color,
+                      color: color.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: color.withValues(alpha: 0.6), width: 1.5),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart';
+
 import '../../../core/networking/api_client.dart';
 import '../domain/activation.dart';
 import '../domain/member.dart';
@@ -54,6 +56,23 @@ class MemberRepository {
           'birth_date':
               '${birthDate.year.toString().padLeft(4, '0')}-${birthDate.month.toString().padLeft(2, '0')}-${birthDate.day.toString().padLeft(2, '0')}',
       },
+    );
+
+    return Member.fromJson(
+      (response.data as Map<String, dynamic>)['data'] as Map<String, dynamic>,
+    );
+  }
+
+  Future<Member> uploadAvatar({
+    required int householdId,
+    required int memberId,
+    required String filePath,
+  }) async {
+    final response = await _apiClient.post(
+      '/households/$householdId/members/$memberId/avatar',
+      data: FormData.fromMap({
+        'avatar': await MultipartFile.fromFile(filePath),
+      }),
     );
 
     return Member.fromJson(

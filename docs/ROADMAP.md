@@ -2,8 +2,8 @@
 
 > **Status:** Phase 0 (Product & Technical Foundation) is implemented, and
 > Phase 1 (accounts, households, members, invite links + QR, placeholder
-> activation, user profile editing, household switching) is implemented
-> aside from household profile settings and per-member profile editing. See
+> activation, user profile editing, household switching, member profile
+> editing) is implemented aside from richer household settings. See
 > `ARCHITECTURE.md` → "Foundation Implementation Notes" for exactly what
 > exists today and how to run it.
 
@@ -100,7 +100,7 @@ A basic Flutter client can authenticate against Laravel and communicate with Pos
 
 ---
 
-# Phase 1 — Accounts & Households (in progress — household & member profile screens remain)
+# Phase 1 — Accounts & Households (in progress — household settings screen remains)
 
 ## Features
 
@@ -114,7 +114,7 @@ A basic Flutter client can authenticate against Laravel and communicate with Pos
 - [x] Invite link
 - [x] QR invitation
 - [x] Placeholder members
-- [ ] Member profiles (detail/edit screen)
+- [x] Member profiles (detail/edit screen)
 - [x] Household membership
 - [x] Multiple household membership (data model + API support)
 - [x] Household switching (UI)
@@ -167,6 +167,17 @@ A user can:
 Invite link and QR invitation (generate + scan) tested end to end,
 including a Playwright-driven run with a synthetic camera feed decoding a
 real invite QR through to the join-household preview.
+
+## Member Profile Editing
+
+An Owner/Adult can edit a member's name, birth date, and role from the
+Family screen's member detail view, and replace their avatar photo
+(camera or gallery) independently of the rest of the form. The Owner's
+own role is immutable — the field is omitted from the request entirely
+for that case rather than resent, since the backend rejects `role`
+being present at all for that row. Verified on a real Android device,
+including a round-trip bug (submitting the Owner's own unchanged role
+value failed validation) found and fixed during that testing.
 
 ---
 

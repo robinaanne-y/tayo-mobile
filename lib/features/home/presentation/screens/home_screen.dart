@@ -2,18 +2,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/networking/api_exception.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_bottom_sheet.dart';
 import '../../../../shared/widgets/app_card.dart';
-import '../../../../shared/widgets/section_header.dart';
+import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/member_avatar.dart';
+import '../../../../shared/widgets/primary_button.dart';
 import '../../../../shared/screens/coming_soon_screen.dart';
 import '../../../auth/presentation/providers/auth_controller.dart';
 import '../../../auth/presentation/screens/profile_screen.dart';
+import '../../../family_notes/domain/family_note.dart';
+import '../../../family_notes/presentation/family_note_providers.dart';
 import '../../../households/domain/household.dart';
 import '../../../households/presentation/household_visuals.dart';
 import '../../../households/presentation/providers/household_providers.dart';
 import '../../../members/presentation/providers/member_providers.dart';
+
+const _kNoteColors = [
+  Color(0xFFFFF6D9),
+  Color(0xFFFFE3DE),
+  Color(0xFFE3F2FF),
+  Color(0xFFEFE7FB),
+  Color(0xFFE3F7EA),
+];
+
+String _timeLeftLabel(DateTime expiresAt) {
+  final diff = expiresAt.difference(DateTime.now());
+  if (diff.isNegative) return 'Expired';
+  if (diff.inHours >= 1) return '${diff.inHours}h left';
+  return '${diff.inMinutes.clamp(1, 59)}m left';
+}
 
 const _weekdayNames = [
   'Monday',
@@ -155,70 +174,11 @@ class HomeScreen extends ConsumerWidget {
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  AppCard(
-                    padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 72,
-                          height: 72,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: householdColor.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(householdEmoji, style: const TextStyle(fontSize: 36)),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Welcome to your household!',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          "This is your family's home base. Add events, plan "
-                          'meals, and coordinate everything in one calm place.',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
+                  _SectionHeaderRow(
+                    title: "Today's Schedule",
+                    actionLabel: 'See all',
+                    onAction: () => context.go('/calendar'),
                   ),
-                  const SizedBox(height: 24),
-                  const SectionHeader(title: 'GET STARTED'),
-                  const SizedBox(height: 8),
-                  AppCard(
-                    padding: EdgeInsets.zero,
-                    child: Column(
-                      children: [
-                        _GetStartedRow(
-                          icon: Icons.groups_rounded,
-                          label: 'Invite family members',
-                          onTap: () => context.go('/family'),
-                        ),
-                        const Divider(height: 1),
-                        _GetStartedRow(
-                          icon: Icons.calendar_month_rounded,
-                          label: 'Add your first event',
-                          onTap: () => context.go('/calendar'),
-                        ),
-                        const Divider(height: 1),
-                        _GetStartedRow(
-                          icon: Icons.restaurant_rounded,
-                          label: "Plan this week's meals",
-                          onTap: () => context.go('/meals'),
-                        ),
-                        const Divider(height: 1),
-                        _GetStartedRow(
-                          icon: Icons.shopping_basket_rounded,
-                          label: 'Start your grocery list',
-                          onTap: () => context.go('/groceries'),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text("Today's Schedule", style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
                   _EmptyStateCard(
                     emoji: '📅',
@@ -229,18 +189,22 @@ class HomeScreen extends ConsumerWidget {
                     onPressed: () => context.go('/calendar'),
                   ),
                   const SizedBox(height: 24),
-                  Text('Family Notes', style: Theme.of(context).textTheme.titleMedium),
+                  Text('Needs Your Attention', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
-                  _EmptyStateCard(
-                    emoji: '📝',
-                    title: 'No notes yet',
-                    message: 'Leave a quick message for your family — '
-                        'reminders, encouragement, or just a hello.',
-                    buttonLabel: 'Leave a note',
-                    onPressed: () => _notComingYet(context),
+                  const _EmptyStateCard(
+                    emoji: '✅',
+                    title: "You're all caught up",
+                    message: 'Permission requests from the family will show '
+                        'up here for you to review.',
                   ),
                   const SizedBox(height: 24),
-                  Text("Today's Meals", style: Theme.of(context).textTheme.titleMedium),
+                  const _FamilyNotesSection(),
+                  const SizedBox(height: 24),
+                  _SectionHeaderRow(
+                    title: "Today's Meals",
+                    actionLabel: 'Request meal',
+                    onAction: () => context.go('/meals'),
+                  ),
                   const SizedBox(height: 8),
                   _EmptyStateCard(
                     emoji: '🍽️',
@@ -251,7 +215,11 @@ class HomeScreen extends ConsumerWidget {
                     onPressed: () => context.go('/meals'),
                   ),
                   const SizedBox(height: 24),
-                  Text('Groceries', style: Theme.of(context).textTheme.titleMedium),
+                  _SectionHeaderRow(
+                    title: 'Groceries',
+                    actionLabel: 'View list',
+                    onAction: () => context.go('/groceries'),
+                  ),
                   const SizedBox(height: 8),
                   _EmptyStateCard(
                     emoji: '🛒',
@@ -290,59 +258,56 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-class _GetStartedRow extends StatelessWidget {
-  const _GetStartedRow({required this.icon, required this.label, required this.onTap});
+/// Title + optional right-aligned text link, used above every Home section
+/// that has a "see more" style action (schedule, notes, meals, groceries).
+class _SectionHeaderRow extends StatelessWidget {
+  const _SectionHeaderRow({
+    required this.title,
+    required this.actionLabel,
+    required this.onAction,
+  });
 
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
+  final String title;
+  final String actionLabel;
+  final VoidCallback onAction;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: AppColors.primary, size: 18),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
-            ),
-            const Icon(Icons.chevron_right_rounded, color: AppColors.border),
-          ],
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(title, style: Theme.of(context).textTheme.titleMedium),
+        TextButton(
+          onPressed: onAction,
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          child: Text(actionLabel, style: const TextStyle(color: AppColors.primary)),
         ),
-      ),
+      ],
     );
   }
 }
 
 /// Shared "nothing here yet" card used for every not-yet-built Home
-/// section (schedule, notes, meals, groceries, trips).
+/// section (schedule, meals, groceries, trips) and for "Needs Your
+/// Attention", which has no action to offer when nothing needs review.
 class _EmptyStateCard extends StatelessWidget {
   const _EmptyStateCard({
     required this.emoji,
     required this.title,
     required this.message,
-    required this.buttonLabel,
-    required this.onPressed,
+    this.buttonLabel,
+    this.onPressed,
   });
 
   final String emoji;
   final String title;
   final String message;
-  final String buttonLabel;
-  final VoidCallback onPressed;
+  final String? buttonLabel;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -359,19 +324,251 @@ class _EmptyStateCard extends StatelessWidget {
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: onPressed,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          if (buttonLabel != null && onPressed != null) ...[
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: onPressed,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: Text(buttonLabel!, style: const TextStyle(fontWeight: FontWeight.w700)),
             ),
-            child: Text(buttonLabel, style: const TextStyle(fontWeight: FontWeight.w700)),
-          ),
+          ],
         ],
       ),
+    );
+  }
+}
+
+/// Family Notes: real data (unlike the other empty-state Home sections),
+/// backed by `households/{household}/notes`. Anyone in the household can
+/// leave a note; the author or an Owner/Adult can remove one.
+class _FamilyNotesSection extends ConsumerWidget {
+  const _FamilyNotesSection();
+
+  Future<void> _openAddSheet(BuildContext context, WidgetRef ref) async {
+    final household = ref.read(currentHouseholdProvider);
+    if (household == null) return;
+
+    final added = await showAppBottomSheet<bool>(
+      context: context,
+      builder: (context) => _AddNoteSheet(householdId: household.id),
+    );
+
+    if (added == true) ref.invalidate(currentHouseholdNotesProvider);
+  }
+
+  Future<void> _delete(BuildContext context, WidgetRef ref, FamilyNote note) async {
+    final household = ref.read(currentHouseholdProvider);
+    if (household == null) return;
+
+    try {
+      await ref.read(familyNoteRepositoryProvider).delete(
+            householdId: household.id,
+            noteId: note.id,
+          );
+      ref.invalidate(currentHouseholdNotesProvider);
+    } on ApiException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notesAsync = ref.watch(currentHouseholdNotesProvider);
+    final household = ref.watch(currentHouseholdProvider);
+    final myMemberId = ref.watch(authControllerProvider).user?.member?.id;
+    final canModerate = household?.myRole == 'owner' || household?.myRole == 'adult';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeaderRow(
+          title: 'Family Notes',
+          actionLabel: '+ Add note',
+          onAction: () => _openAddSheet(context, ref),
+        ),
+        const SizedBox(height: 8),
+        notesAsync.when(
+          data: (notes) {
+            if (notes.isEmpty) {
+              return _EmptyStateCard(
+                emoji: '📝',
+                title: 'No notes yet',
+                message: 'Leave a quick message for your family — '
+                    'reminders, encouragement, or just a hello.',
+                buttonLabel: 'Leave a note',
+                onPressed: () => _openAddSheet(context, ref),
+              );
+            }
+
+            return SizedBox(
+              height: 120,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: notes.length,
+                separatorBuilder: (context, index) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final note = notes[index];
+                  final canDelete = canModerate || note.authorMemberId == myMemberId;
+                  final color = _kNoteColors[index % _kNoteColors.length];
+
+                  return Container(
+                    width: 180,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            note.content,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 3,
+                          ),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    note.authorName,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  Text(
+                                    _timeLeftLabel(note.expiresAt),
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (canDelete)
+                              InkWell(
+                                onTap: () => _delete(context, ref, note),
+                                child: const Icon(
+                                  Icons.close_rounded,
+                                  size: 16,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+          loading: () => const SizedBox(
+            height: 120,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (error, stackTrace) => _EmptyStateCard(
+            emoji: '📝',
+            title: "Couldn't load notes",
+            message: error is ApiException
+                ? error.message
+                : 'Something went wrong. Please try again.',
+            buttonLabel: 'Retry',
+            onPressed: () => ref.invalidate(currentHouseholdNotesProvider),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AddNoteSheet extends ConsumerStatefulWidget {
+  const _AddNoteSheet({required this.householdId});
+
+  final int householdId;
+
+  @override
+  ConsumerState<_AddNoteSheet> createState() => _AddNoteSheetState();
+}
+
+class _AddNoteSheetState extends ConsumerState<_AddNoteSheet> {
+  final _controller = TextEditingController();
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final content = _controller.text.trim();
+    if (content.isEmpty) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await ref.read(familyNoteRepositoryProvider).create(
+            householdId: widget.householdId,
+            content: content,
+          );
+      if (mounted) Navigator.of(context).pop(true);
+    } on ApiException catch (e) {
+      setState(() => _errorMessage = e.message);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Leave a family note', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 6),
+        Text(
+          'Visible to the household for 24 hours.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: 16),
+        if (_errorMessage != null) ...[
+          Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+          const SizedBox(height: 12),
+        ],
+        AppTextField(
+          label: 'Message',
+          controller: _controller,
+        ),
+        const SizedBox(height: 16),
+        PrimaryButton(
+          label: 'Post note',
+          isLoading: _isLoading,
+          onPressed: _submit,
+        ),
+      ],
     );
   }
 }

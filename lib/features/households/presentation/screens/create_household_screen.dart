@@ -7,27 +7,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../auth/presentation/providers/auth_controller.dart';
+import '../household_visuals.dart';
 import '../providers/household_providers.dart';
-
-/// Cosmetic, ephemeral picks from step 2 — not persisted anywhere, since the
-/// backend `Household` model has no color/emoji field yet. Passed forward
-/// only to prefill the Invite Member screen's header preview.
-class HouseholdVisualPreview {
-  const HouseholdVisualPreview({required this.color, required this.emoji});
-
-  final Color color;
-  final String emoji;
-}
-
-const _kHouseholdColors = [
-  AppColors.primary,
-  AppColors.skyBlue,
-  AppColors.accent,
-  AppColors.lavender,
-  AppColors.softYellow,
-];
-
-const _kHouseholdEmojis = ['🏡', '🏠', '🌿', '⭐', '🐾', '🍀', '🌞'];
 
 class CreateHouseholdScreen extends ConsumerStatefulWidget {
   const CreateHouseholdScreen({super.key});
@@ -41,8 +22,8 @@ class _CreateHouseholdScreenState extends ConsumerState<CreateHouseholdScreen> {
   final _nameController = TextEditingController();
 
   int _step = 1;
-  Color _color = _kHouseholdColors.first;
-  String _emoji = _kHouseholdEmojis.first;
+  Color _color = kHouseholdColors.first;
+  String _emoji = kHouseholdEmojis.first;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -72,20 +53,17 @@ class _CreateHouseholdScreenState extends ConsumerState<CreateHouseholdScreen> {
     });
 
     try {
-      final household = await ref
-          .read(householdRepositoryProvider)
-          .create(_nameController.text.trim());
+      final household = await ref.read(householdRepositoryProvider).create(
+            _nameController.text.trim(),
+            color: householdColorToHex(_color),
+            emoji: _emoji,
+          );
       await ref.read(authControllerProvider.notifier).refreshUser();
       // Make the newly created household the active one — otherwise, when
       // this isn't the user's first household, currentHouseholdProvider
       // would keep pointing at whichever one was already selected.
       ref.read(selectedHouseholdIdProvider.notifier).state = household.id;
-      if (mounted) {
-        context.go(
-          '/invite-members',
-          extra: HouseholdVisualPreview(color: _color, emoji: _emoji),
-        );
-      }
+      if (mounted) context.go('/invite-members');
     } on ApiException catch (e) {
       setState(() => _errorMessage = e.message);
     } finally {
@@ -214,7 +192,7 @@ class _CreateHouseholdScreenState extends ConsumerState<CreateHouseholdScreen> {
       Wrap(
         spacing: 10,
         runSpacing: 10,
-        children: _kHouseholdColors.map((c) {
+        children: kHouseholdColors.map((c) {
           final selected = c == _color;
           return GestureDetector(
             onTap: () => setState(() => _color = c),
@@ -244,7 +222,7 @@ class _CreateHouseholdScreenState extends ConsumerState<CreateHouseholdScreen> {
       Wrap(
         spacing: 10,
         runSpacing: 10,
-        children: _kHouseholdEmojis.map((e) {
+        children: kHouseholdEmojis.map((e) {
           final selected = e == _emoji;
           return GestureDetector(
             onTap: () => setState(() => _emoji = e),

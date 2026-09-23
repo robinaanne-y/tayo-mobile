@@ -4,9 +4,9 @@
 > Phase 1 (accounts, households, members, invite links + QR, placeholder
 > activation, user profile editing, household switching, member profile
 > editing, household profile settings) is fully implemented. Phase 2 (Home
-> & Family Feed) is in progress — the Home screen layout and Family Notes
-> are real; the rest of the feed is an honest empty state until Phases 3-7
-> land. See `ARCHITECTURE.md` → "Foundation Implementation Notes" for
+> & Family Feed) is in progress — the Home screen layout, Family Notes,
+> and Announcements are real; the rest of the feed is an honest empty
+> state until Phases 3-7 land. See `ARCHITECTURE.md` → "Foundation Implementation Notes" for
 > exactly what exists today and how to run it.
 
 ## 1. Product Vision
@@ -207,7 +207,7 @@ real API and is reflected back on the Family screen.
       itself is a read-through of Calendar events, so it stays an honest
       empty state until Phase 3 ships)
 - [ ] Upcoming events (same — Phase 3)
-- [ ] Announcements (own table/CRUD, not yet built)
+- [x] Announcements (create, list, delete — Owner/Adult post, anyone reads)
 - [ ] Reminders (Phase 9 — read-through of other modules' due dates, no
       dedicated table)
 - [ ] Pending requests / "Needs Your Attention" (Home section redesigned
@@ -247,17 +247,27 @@ Examples:
 
 ## Announcements
 
-Longer-lived household messages. Not yet built — deferred until there's a
-concrete UI need for something longer-lived than a Family Note.
+Longer-lived household messages — unlike a Family Note, these don't
+expire and only an Owner/Adult can post one (a household bulletin, not a
+free-for-all). Implemented: `announcements` table (`household_id`,
+`author_member_id`, `content`), `GET`/`POST`/`DELETE
+/api/v1/households/{household}/announcements`. Any member can read the
+list; the author or an Owner/Adult can delete one. Rendered on Home as a
+vertical list of cards (not a horizontal scroll like notes, since these
+are meant to be read in full and stay around) below Family Notes, with a
+"+ Post" action visible only to an Owner/Adult. Verified end to end with
+Playwright: post an announcement, see it render with author + relative
+time, delete it, confirm it round-trips through the real API back to the
+empty state.
 
 ## Home Principle
 
 Home is an aggregation of information from other modules. It should not
 become a separate source of duplicate data. A dedicated `GET /api/v1/home`
 aggregation endpoint (per the API roadmap) is deferred until there are
-enough real sources to justify it — right now Family Notes is the only
-section with real data, so the mobile client just calls its own endpoint
-directly.
+enough real sources to justify it — Family Notes and Announcements are
+the only sections with real data so far, so the mobile client calls their
+endpoints directly.
 
 ### Milestone
 
@@ -265,10 +275,10 @@ Opening the app immediately answers:
 
 > **"What's happening with my family today?"**
 
-Partially met: the layout and Family Notes are real; the rest of the feed
-(schedule, requests, meals, groceries, trips) will fill in as Phases 3-7
-land, without needing another Home redesign — the sections are already
-in place.
+Partially met: the layout, Family Notes, and Announcements are real; the
+rest of the feed (schedule, requests, meals, groceries, trips) will fill
+in as Phases 3-7 land, without needing another Home redesign — the
+sections are already in place.
 
 ---
 

@@ -401,7 +401,7 @@ class _FamilyNotesSection extends ConsumerWidget {
     final canModerate = household?.myRole == 'owner' || household?.myRole == 'adult';
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _SectionHeaderRow(
           title: 'Family Notes',
@@ -633,7 +633,7 @@ class _AnnouncementsSection extends ConsumerWidget {
     final canModerate = household?.myRole == 'owner' || household?.myRole == 'adult';
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (canModerate)
           _SectionHeaderRow(

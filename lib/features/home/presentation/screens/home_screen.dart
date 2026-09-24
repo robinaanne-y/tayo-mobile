@@ -10,6 +10,8 @@ import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/member_avatar.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../../shared/screens/coming_soon_screen.dart';
+import '../../../announcements/domain/announcement.dart';
+import '../../../announcements/presentation/announcement_providers.dart';
 import '../../../auth/presentation/providers/auth_controller.dart';
 import '../../../auth/presentation/screens/profile_screen.dart';
 import '../../../family_notes/domain/family_note.dart';
@@ -35,6 +37,14 @@ String _timeLeftLabel(DateTime expiresAt) {
   if (diff.isNegative) return 'Expired';
   if (diff.inHours >= 1) return '${diff.inHours}h left';
   return '${diff.inMinutes.clamp(1, 59)}m left';
+}
+
+String _announcementTimeLabel(DateTime createdAt) {
+  final diff = DateTime.now().difference(createdAt);
+  if (diff.inMinutes < 1) return 'Just now';
+  if (diff.inHours < 1) return '${diff.inMinutes}m ago';
+  if (diff.inHours < 24) return '${diff.inHours}h ago';
+  return '${_monthNames[createdAt.month - 1].substring(0, 3)} ${createdAt.day}';
 }
 
 const _weekdayNames = [
@@ -202,6 +212,8 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 24),
                   const _FamilyNotesSection(),
+                  const SizedBox(height: 24),
+                  const _AnnouncementsSection(),
                   const SizedBox(height: 24),
                   _SectionHeaderRow(
                     title: "Today's Meals",
@@ -569,6 +581,239 @@ class _AddNoteSheetState extends ConsumerState<_AddNoteSheet> {
         const SizedBox(height: 16),
         PrimaryButton(
           label: 'Post note',
+          isLoading: _isLoading,
+          onPressed: _submit,
+        ),
+      ],
+    );
+  }
+}
+
+/// Announcements: like Family Notes, but longer-lived (no expiration) and
+/// restricted to an Owner/Adult posting — a household bulletin rather than
+/// a free-for-all sticky note. Backed by
+/// `households/{household}/announcements`.
+class _AnnouncementsSection extends ConsumerWidget {
+  const _AnnouncementsSection();
+
+  Future<void> _openAddSheet(BuildContext context, WidgetRef ref) async {
+    final household = ref.read(currentHouseholdProvider);
+    if (household == null) return;
+
+    final added = await showAppBottomSheet<bool>(
+      context: context,
+      builder: (context) => _AddAnnouncementSheet(householdId: household.id),
+    );
+
+    if (added == true) ref.invalidate(currentHouseholdAnnouncementsProvider);
+  }
+
+  Future<void> _delete(BuildContext context, WidgetRef ref, Announcement announcement) async {
+    final household = ref.read(currentHouseholdProvider);
+    if (household == null) return;
+
+    try {
+      await ref.read(announcementRepositoryProvider).delete(
+            householdId: household.id,
+            announcementId: announcement.id,
+          );
+      ref.invalidate(currentHouseholdAnnouncementsProvider);
+    } on ApiException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final announcementsAsync = ref.watch(currentHouseholdAnnouncementsProvider);
+    final household = ref.watch(currentHouseholdProvider);
+    final myMemberId = ref.watch(authControllerProvider).user?.member?.id;
+    final canModerate = household?.myRole == 'owner' || household?.myRole == 'adult';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (canModerate)
+          _SectionHeaderRow(
+            title: 'Announcements',
+            actionLabel: '+ Post',
+            onAction: () => _openAddSheet(context, ref),
+          )
+        else
+          Text('Announcements', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        announcementsAsync.when(
+          data: (announcements) {
+            if (announcements.isEmpty) {
+              return _EmptyStateCard(
+                emoji: '📣',
+                title: 'No announcements yet',
+                message: canModerate
+                    ? 'Share something the whole household should know.'
+                    : "Household announcements from an adult will show up here.",
+                buttonLabel: canModerate ? 'Post announcement' : null,
+                onPressed: canModerate ? () => _openAddSheet(context, ref) : null,
+              );
+            }
+
+            return Column(
+              children: [
+                for (final announcement in announcements) ...[
+                  _AnnouncementCard(
+                    announcement: announcement,
+                    canDelete: canModerate || announcement.authorMemberId == myMemberId,
+                    onDelete: () => _delete(context, ref, announcement),
+                  ),
+                  if (announcement != announcements.last) const SizedBox(height: 10),
+                ],
+              ],
+            );
+          },
+          loading: () => const SizedBox(
+            height: 80,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (error, stackTrace) => _EmptyStateCard(
+            emoji: '📣',
+            title: "Couldn't load announcements",
+            message: error is ApiException
+                ? error.message
+                : 'Something went wrong. Please try again.',
+            buttonLabel: 'Retry',
+            onPressed: () => ref.invalidate(currentHouseholdAnnouncementsProvider),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AnnouncementCard extends StatelessWidget {
+  const _AnnouncementCard({
+    required this.announcement,
+    required this.canDelete,
+    required this.onDelete,
+  });
+
+  final Announcement announcement;
+  final bool canDelete;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.campaign_rounded, color: AppColors.primary, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(announcement.content, style: Theme.of(context).textTheme.bodyMedium),
+                const SizedBox(height: 6),
+                Text(
+                  '${announcement.authorName} · ${_announcementTimeLabel(announcement.createdAt)}',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          if (canDelete)
+            InkWell(
+              onTap: onDelete,
+              child: const Padding(
+                padding: EdgeInsets.only(left: 8),
+                child: Icon(Icons.close_rounded, size: 16, color: AppColors.textSecondary),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AddAnnouncementSheet extends ConsumerStatefulWidget {
+  const _AddAnnouncementSheet({required this.householdId});
+
+  final int householdId;
+
+  @override
+  ConsumerState<_AddAnnouncementSheet> createState() => _AddAnnouncementSheetState();
+}
+
+class _AddAnnouncementSheetState extends ConsumerState<_AddAnnouncementSheet> {
+  final _controller = TextEditingController();
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final content = _controller.text.trim();
+    if (content.isEmpty) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await ref.read(announcementRepositoryProvider).create(
+            householdId: widget.householdId,
+            content: content,
+          );
+      if (mounted) Navigator.of(context).pop(true);
+    } on ApiException catch (e) {
+      setState(() => _errorMessage = e.message);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Post an announcement', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 6),
+        Text(
+          "Visible to the whole household until you remove it.",
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: 16),
+        if (_errorMessage != null) ...[
+          Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+          const SizedBox(height: 12),
+        ],
+        AppTextField(
+          label: 'Announcement',
+          controller: _controller,
+        ),
+        const SizedBox(height: 16),
+        PrimaryButton(
+          label: 'Post announcement',
           isLoading: _isLoading,
           onPressed: _submit,
         ),

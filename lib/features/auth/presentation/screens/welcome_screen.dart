@@ -118,10 +118,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     Text(
                       slide.title,
                       textAlign: TextAlign.center,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleLarge
-                          ?.copyWith(fontSize: 26),
+                      style: Theme.of(context).textTheme.displayLarge,
                     ),
                     const SizedBox(height: 12),
                     Text(

@@ -1023,6 +1023,35 @@ Flutter widgets should primarily handle presentation and user interaction.
 > respectively since those are used across features; `auth/domain`
 > composes them into `AppUser`.
 
+> **Foundation note — Theming (Light/Dark/System):**
+>
+> `core/theme/` splits colors into two tiers:
+> - `AppColorTokens` (`app_color_tokens.dart`) — a `ThemeExtension` holding
+>   every color that differs between Light and Dark (backgrounds, text,
+>   borders, `primary`/`accent`/`error`/etc.). Read via the `context.colors`
+>   `BuildContext` extension, never as a `static const` — a value that must
+>   change at runtime with the active theme can't be a compile-time
+>   constant. `AppTheme.light`/`.dark` (`app_theme.dart`) each build a full
+>   `ThemeData` from one `AppColorTokens` instance and register it via
+>   `ThemeData.extensions`.
+> - `AppColors` (`app_colors.dart`) — a small `static const` class for
+>   colors that stay fixed across themes by design: the member-identity
+>   palette (`memberPalette`/`memberColor()`) and `status*` colors. A
+>   person's avatar color shouldn't shift when the theme does.
+>
+> `ThemeModeController` (`theme_mode_controller.dart`, a `Notifier<ThemeMode>`
+> exposed as `themeModeProvider`) persists the user's Light/Dark/System
+> choice via `shared_preferences`, defaulting to `system` until the stored
+> value loads. `main.dart` wires `theme`/`darkTheme`/`themeMode` from it.
+> The control lives in `ProfileScreen` (an "Appearance" `SegmentedButton`)
+> — there's no separate Settings screen yet, and Profile already doubles
+> as the closest thing to one.
+>
+> A file that mixes theme-dependent and theme-invariant colors in one
+> `const` list (e.g. `household_visuals.dart`'s color-picker palette,
+> `home_screen.dart`'s note-card hues) can't stay `const` — it becomes a
+> function taking `BuildContext` instead, called once per build.
+
 ---
 
 # 26. Database Principles
@@ -1528,6 +1557,9 @@ Run tests: `flutter test` (5 passing). Static analysis: `flutter analyze`
 - Home and Family screens are functional past the initial placeholder
   stage — see the Home & Family screen redesign work for current visual
   state
+- Full Light/Dark/System theming — see §25 "Foundation note — Theming"
+  above for the `AppColorTokens`/`AppColors` split. Toggle lives in
+  Profile ("Appearance")
 
 ## What's deliberately not implemented yet
 

@@ -6,7 +6,10 @@
 > editing, household profile settings) is fully implemented. Phase 2 (Home
 > & Family Feed) is in progress — the Home screen layout, Family Notes,
 > and Announcements are real; the rest of the feed is an honest empty
-> state until Phases 3-7 land. See `ARCHITECTURE.md` → "Foundation Implementation Notes" for
+> state until Phases 3-7 land. Before Phase 3, the app's color system was
+> overhauled and a real Light/Dark/System theme mode shipped (toggle in
+> Profile → Appearance) — see `ARCHITECTURE.md` §25 "Foundation note —
+> Theming". See `ARCHITECTURE.md` → "Foundation Implementation Notes" for
 > exactly what exists today and how to run it.
 
 ## 1. Product Vision

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_color_tokens.dart';
+
 class PrimaryButton extends StatelessWidget {
   const PrimaryButton({
     super.key,
@@ -19,12 +21,12 @@ class PrimaryButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         child: isLoading
-            ? const SizedBox(
+            ? SizedBox(
                 height: 20,
                 width: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Colors.white,
+                  color: context.colors.primaryForeground,
                 ),
               )
             : Text(label),

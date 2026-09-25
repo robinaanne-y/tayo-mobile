@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_spacing.dart';
+
 /// Thin wrapper over [Card] with the app's standard content padding.
 /// Visual shape comes entirely from `CardTheme` in [AppTheme].
 class AppCard extends StatelessWidget {
   const AppCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(16),
+    this.padding = const EdgeInsets.all(AppSpacing.space16),
     this.onTap,
   });
 

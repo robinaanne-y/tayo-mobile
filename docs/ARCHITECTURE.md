@@ -1051,6 +1051,23 @@ Flutter widgets should primarily handle presentation and user interaction.
 > `const` list (e.g. `household_visuals.dart`'s color-picker palette,
 > `home_screen.dart`'s note-card hues) can't stay `const` — it becomes a
 > function taking `BuildContext` instead, called once per build.
+>
+> Typography, spacing and radius follow the same design system's tokens.
+> `AppTheme._build()`'s `textTheme` maps Display/H1/H2/H3 (Nunito
+> Semibold) and Body/Small/Label/Button (Inter) onto Material's
+> `displayLarge`/`headlineSmall`/`titleLarge`/`titleMedium`/`bodyMedium`/
+> `bodySmall`/`labelMedium`/`labelLarge` respectively — set centrally so
+> every existing `Theme.of(context).textTheme.X` call site picks up the
+> right size/weight/line-height without per-screen changes.
+> `labelLarge` (the Button style) is deliberately what every
+> `ButtonStyleButton` (Elevated/Outlined/Text) falls back to when its own
+> `style.textStyle` is left unset, so `elevatedButtonTheme` doesn't
+> duplicate it. `AppSpacing` (`app_spacing.dart`) and `AppRadius`
+> (`app_radius.dart`) hold the 4px spacing scale and radius scale
+> (`xs`/`sm`/`md`/`lg`/`pill`); used in `AppTheme`, `AppCard` and
+> `AppBottomSheet` so far — not swept into every screen's individual
+> `SizedBox`/`EdgeInsets` calls, since most of those didn't need to
+> change to match the new values.
 
 ---
 

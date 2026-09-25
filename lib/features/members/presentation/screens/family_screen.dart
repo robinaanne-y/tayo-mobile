@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -86,13 +87,13 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           ListTile(
-            leading: Icon(Icons.person_add_rounded, color: context.colors.primary),
+            leading: Icon(LucideIcons.userPlus, color: context.colors.primary),
             title: const Text('Add a member'),
             subtitle: const Text('Enter their details yourself'),
             onTap: () => Navigator.of(context).pop('add'),
           ),
           ListTile(
-            leading: Icon(Icons.link_rounded, color: context.colors.primary),
+            leading: Icon(LucideIcons.link, color: context.colors.primary),
             title: const Text('Invite to household'),
             subtitle: const Text('Share a link or QR code'),
             onTap: () => Navigator.of(context).pop('invite'),
@@ -166,7 +167,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
                   ),
                   const SizedBox(width: 8),
                   IconButton(
-                    icon: const Icon(Icons.settings_rounded),
+                    icon: const Icon(LucideIcons.settings),
                     tooltip: 'Household settings',
                     onPressed: household == null
                         ? null
@@ -188,7 +189,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.add_rounded, size: 16, color: Colors.white),
+                            Icon(LucideIcons.plus, size: 16, color: Colors.white),
                             SizedBox(width: 4),
                             Text(
                               'Add',
@@ -302,7 +303,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
                                     ],
                                   ),
                                 ),
-                                Icon(Icons.chevron_right_rounded,
+                                Icon(LucideIcons.chevronRight,
                                     color: context.colors.border),
                               ],
                             ),
@@ -374,12 +375,12 @@ class _MemberDetail extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           ListTile(
-            leading: Icon(Icons.photo_camera_rounded, color: context.colors.primary),
+            leading: Icon(LucideIcons.camera, color: context.colors.primary),
             title: const Text('Take a photo'),
             onTap: () => Navigator.of(context).pop(ImageSource.camera),
           ),
           ListTile(
-            leading: Icon(Icons.photo_library_rounded, color: context.colors.primary),
+            leading: Icon(LucideIcons.image, color: context.colors.primary),
             title: const Text('Choose from gallery'),
             onTap: () => Navigator.of(context).pop(ImageSource.gallery),
           ),
@@ -439,13 +440,13 @@ class _MemberDetail extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
+          icon: const Icon(LucideIcons.arrowLeft),
           onPressed: onBack,
         ),
         title: Text(member.name),
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit_rounded),
+            icon: const Icon(LucideIcons.pencil),
             tooltip: 'Edit',
             onPressed: () => _edit(context, ref),
           ),
@@ -481,7 +482,7 @@ class _MemberDetail extends ConsumerWidget {
                         ),
                       ),
                       child: const Icon(
-                        Icons.photo_camera_rounded,
+                        LucideIcons.camera,
                         color: Colors.white,
                         size: 15,
                       ),
@@ -634,7 +635,7 @@ class _AddMemberSheetState extends ConsumerState<_AddMemberSheet> {
             title: Text(_birthDate == null
                 ? 'Birth date (optional)'
                 : '${_birthDate!.year}-${_birthDate!.month.toString().padLeft(2, '0')}-${_birthDate!.day.toString().padLeft(2, '0')}'),
-            trailing: const Icon(Icons.calendar_today_rounded),
+            trailing: const Icon(LucideIcons.calendar),
             onTap: _pickBirthDate,
           ),
           const SizedBox(height: 16),
@@ -764,7 +765,7 @@ class _EditMemberSheetState extends ConsumerState<_EditMemberSheet> {
             title: Text(_birthDate == null
                 ? 'Birth date (optional)'
                 : '${_birthDate!.year}-${_birthDate!.month.toString().padLeft(2, '0')}-${_birthDate!.day.toString().padLeft(2, '0')}'),
-            trailing: const Icon(Icons.calendar_today_rounded),
+            trailing: const Icon(LucideIcons.calendar),
             onTap: _pickBirthDate,
           ),
           const SizedBox(height: 16),
@@ -941,7 +942,7 @@ class _ShareLinkSheet extends StatelessWidget {
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                icon: const Icon(Icons.copy_rounded, size: 18),
+                icon: const Icon(LucideIcons.copy, size: 18),
                 label: const Text('Copy'),
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: link));

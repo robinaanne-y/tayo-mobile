@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -170,7 +171,7 @@ class _InvalidLink extends StatelessWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.link_off_rounded, size: 48, color: context.colors.textSecondary),
+        Icon(LucideIcons.unlink, size: 48, color: context.colors.textSecondary),
         const SizedBox(height: 16),
         Text(
           'This invite link has expired or was already used.',

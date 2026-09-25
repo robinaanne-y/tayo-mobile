@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -104,7 +105,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               path: '/calendar',
               builder: (context, state) => const ComingSoonScreen(
                 title: 'Calendar',
-                icon: Icons.calendar_month_rounded,
+                icon: LucideIcons.calendarDays,
                 message: 'Shared household scheduling is on its way.',
               ),
             ),
@@ -114,7 +115,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               path: '/meals',
               builder: (context, state) => const ComingSoonScreen(
                 title: 'Meals',
-                icon: Icons.restaurant_rounded,
+                icon: LucideIcons.utensils,
                 message: 'Weekly meal planning is on its way.',
               ),
             ),
@@ -124,7 +125,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               path: '/groceries',
               builder: (context, state) => const ComingSoonScreen(
                 title: 'Groceries',
-                icon: Icons.shopping_basket_rounded,
+                icon: LucideIcons.shoppingBag,
                 message: 'A shared grocery list is on its way.',
               ),
             ),

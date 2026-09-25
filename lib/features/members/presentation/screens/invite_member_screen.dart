@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -133,7 +134,7 @@ class _InviteMemberScreenState extends ConsumerState<InviteMemberScreen> {
                               shape: BoxShape.circle,
                               border: Border.all(color: context.colors.border),
                             ),
-                            child: Icon(Icons.add_rounded, color: context.colors.primary),
+                            child: Icon(LucideIcons.plus, color: context.colors.primary),
                           ),
                           const SizedBox(width: 12),
                           Text(
@@ -355,7 +356,7 @@ class _AddMemberFormState extends ConsumerState<_AddMemberForm> {
               title: Text(_birthDate == null
                   ? 'Birthday (optional)'
                   : '${_birthDate!.year}-${_birthDate!.month.toString().padLeft(2, '0')}-${_birthDate!.day.toString().padLeft(2, '0')}'),
-              trailing: const Icon(Icons.calendar_today_rounded),
+              trailing: const Icon(LucideIcons.calendar),
               onTap: _pickBirthDate,
             ),
           ],
@@ -381,14 +382,14 @@ class _RoleIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return switch (role) {
       HouseholdRole.adult => Icon(
-          Icons.person_rounded,
+          LucideIcons.user,
           color: selected ? Colors.white : context.colors.textSecondary,
           size: 22,
         ),
       HouseholdRole.minor => const Text('🧒', style: TextStyle(fontSize: 20)),
       HouseholdRole.child => const Text('👶', style: TextStyle(fontSize: 20)),
       HouseholdRole.owner => Icon(
-          Icons.shield_rounded,
+          LucideIcons.shield,
           color: selected ? Colors.white : context.colors.textSecondary,
           size: 22,
         ),

@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:tayo/core/theme/app_theme.dart';
 import 'package:tayo/features/auth/presentation/screens/login_screen.dart';
 
 void main() {
   Future<void> pumpLogin(WidgetTester tester) async {
     await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(home: LoginScreen()),
+      ProviderScope(
+        child: MaterialApp(theme: AppTheme.light, home: const LoginScreen()),
       ),
     );
   }

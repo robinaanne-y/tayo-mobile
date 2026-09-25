@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/networking/api_exception.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_color_tokens.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../auth/presentation/providers/auth_controller.dart';
@@ -35,7 +35,7 @@ class _HouseholdSettingsScreenState
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.household.name);
-    _color = householdColorFromHex(widget.household.color);
+    _color = householdColorFromHex(context, widget.household.color);
     _emoji = widget.household.emoji ?? kHouseholdEmojis.first;
   }
 
@@ -80,9 +80,9 @@ class _HouseholdSettingsScreenState
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.background,
+                color: context.colors.background,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: context.colors.border),
               ),
               child: Text(
                 'Only the household Owner can change these settings.',
@@ -120,7 +120,7 @@ class _HouseholdSettingsScreenState
           Wrap(
             spacing: 10,
             runSpacing: 10,
-            children: kHouseholdColors.map((c) {
+            children: kHouseholdColors(context).map((c) {
               final selected = c.toARGB32() == _color.toARGB32();
               return GestureDetector(
                 onTap: _isOwner ? () => setState(() => _color = c) : null,
@@ -131,7 +131,7 @@ class _HouseholdSettingsScreenState
                     color: c,
                     shape: BoxShape.circle,
                     border: selected
-                        ? Border.all(color: AppColors.background, width: 3)
+                        ? Border.all(color: context.colors.background, width: 3)
                         : null,
                     boxShadow: selected
                         ? [BoxShadow(color: c, blurRadius: 0, spreadRadius: 2)]
@@ -159,10 +159,10 @@ class _HouseholdSettingsScreenState
                   height: 40,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: selected ? _color.withValues(alpha: 0.15) : AppColors.background,
+                    color: selected ? _color.withValues(alpha: 0.15) : context.colors.background,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: selected ? _color : AppColors.border,
+                      color: selected ? _color : context.colors.border,
                       width: selected ? 2 : 1,
                     ),
                   ),

@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/networking/api_exception.dart';
 import '../../../../core/routing/app_router.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_color_tokens.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../auth/presentation/providers/auth_controller.dart';
 import '../../domain/invitation.dart';
@@ -99,7 +99,7 @@ class _JoinHouseholdScreenState extends ConsumerState<JoinHouseholdScreen> {
                     width: 72,
                     height: 72,
                     decoration: BoxDecoration(
-                      color: AppColors.primary,
+                      color: context.colors.primary,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     alignment: Alignment.center,
@@ -110,7 +110,7 @@ class _JoinHouseholdScreenState extends ConsumerState<JoinHouseholdScreen> {
                     "You're invited to join",
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.colors.textSecondary,
                         ),
                   ),
                   const SizedBox(height: 4),
@@ -170,7 +170,7 @@ class _InvalidLink extends StatelessWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Icon(Icons.link_off_rounded, size: 48, color: AppColors.textSecondary),
+        Icon(Icons.link_off_rounded, size: 48, color: context.colors.textSecondary),
         const SizedBox(height: 16),
         Text(
           'This invite link has expired or was already used.',

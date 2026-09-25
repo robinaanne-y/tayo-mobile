@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_color_tokens.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/accessibility.dart';
 import '../../../../shared/screens/qr_scan_screen.dart';
 
 class _Slide {
@@ -101,7 +102,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
+                      duration: context.motionDuration(const Duration(milliseconds: 300)),
                       width: 180,
                       height: 180,
                       decoration: BoxDecoration(
@@ -143,7 +144,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     children: List.generate(_slides(context).length, (i) {
                       final active = i == _current;
                       return AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
+                        duration: context.motionDuration(const Duration(milliseconds: 200)),
                         margin: const EdgeInsets.symmetric(horizontal: 4),
                         width: active ? 24 : 8,
                         height: 8,

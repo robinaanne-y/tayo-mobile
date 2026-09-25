@@ -69,16 +69,20 @@ class _InviteMemberScreenState extends ConsumerState<InviteMemberScreen> {
                         child: Text(emoji, style: const TextStyle(fontSize: 20)),
                       ),
                       const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Setting up',
-                              style: Theme.of(context).textTheme.bodySmall),
-                          Text(
-                            household?.name ?? '',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                        ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Setting up',
+                                style: Theme.of(context).textTheme.bodySmall),
+                            Text(
+                              household?.name ?? '',
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),

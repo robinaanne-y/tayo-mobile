@@ -135,52 +135,58 @@ class HomeScreen extends ConsumerWidget {
                     tooltip: 'Notifications',
                     onPressed: null,
                   ),
-                  InkWell(
-                    borderRadius: BorderRadius.circular(999),
-                    onTap: () async {
-                      // Resolve after the sheet has fully closed, using this
-                      // screen's own (stable) context rather than the
-                      // sheet's — popping first and immediately navigating
-                      // from the sheet's own context is unreliable since
-                      // that context is being torn down.
-                      final result = await showAppBottomSheet<Object>(
-                        context: context,
-                        builder: (context) => const _HouseholdSwitcherSheet(),
-                      );
-                      if (!context.mounted) return;
-                      if (result is int) {
-                        ref.read(selectedHouseholdIdProvider.notifier).state = result;
-                      } else if (result == 'create') {
-                        context.go('/create-household');
-                      } else if (result == 'logout') {
-                        ref.read(authControllerProvider.notifier).logout();
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: householdColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(householdEmoji, style: const TextStyle(fontSize: 14)),
-                          const SizedBox(width: 6),
-                          Text(
-                            household?.name ?? 'Household',
-                            style: TextStyle(
-                              color: householdColor,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
+                  Flexible(
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(999),
+                      onTap: () async {
+                        // Resolve after the sheet has fully closed, using this
+                        // screen's own (stable) context rather than the
+                        // sheet's — popping first and immediately navigating
+                        // from the sheet's own context is unreliable since
+                        // that context is being torn down.
+                        final result = await showAppBottomSheet<Object>(
+                          context: context,
+                          builder: (context) => const _HouseholdSwitcherSheet(),
+                        );
+                        if (!context.mounted) return;
+                        if (result is int) {
+                          ref.read(selectedHouseholdIdProvider.notifier).state = result;
+                        } else if (result == 'create') {
+                          context.go('/create-household');
+                        } else if (result == 'logout') {
+                          ref.read(authControllerProvider.notifier).logout();
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: householdColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(householdEmoji, style: const TextStyle(fontSize: 14)),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                household?.name ?? 'Household',
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                                style: TextStyle(
+                                  color: householdColor,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                ),
+                              ),
                             ),
-                          ),
-                          Icon(
-                            LucideIcons.chevronDown,
-                            color: householdColor,
-                            size: 18,
-                          ),
-                        ],
+                            Icon(
+                              LucideIcons.chevronDown,
+                              color: householdColor,
+                              size: 18,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -486,10 +492,18 @@ class _FamilyNotesSection extends ConsumerWidget {
                             if (canDelete)
                               InkWell(
                                 onTap: () => _delete(context, ref, note),
-                                child: Icon(
-                                  LucideIcons.x,
-                                  size: 16,
-                                  color: context.colors.textSecondary,
+                                customBorder: const CircleBorder(),
+                                // Padding brings the tap target up to the
+                                // 44x44 minimum without growing the visible
+                                // icon — the Column above still has enough
+                                // slack for this row to grow into.
+                                child: Padding(
+                                  padding: const EdgeInsets.all(14),
+                                  child: Icon(
+                                    LucideIcons.x,
+                                    size: 16,
+                                    color: context.colors.textSecondary,
+                                  ),
                                 ),
                               ),
                           ],
@@ -742,8 +756,9 @@ class _AnnouncementCard extends StatelessWidget {
           if (canDelete)
             InkWell(
               onTap: onDelete,
+              customBorder: const CircleBorder(),
               child: Padding(
-                padding: const EdgeInsets.only(left: 8),
+                padding: const EdgeInsets.all(14),
                 child: Icon(LucideIcons.x, size: 16, color: context.colors.textSecondary),
               ),
             ),

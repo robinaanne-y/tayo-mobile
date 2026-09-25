@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/networking/api_exception.dart';
 import '../../../../core/theme/app_color_tokens.dart';
+import '../../../../core/utils/accessibility.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../providers/auth_controller.dart';
@@ -132,7 +133,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         child: GestureDetector(
                           onTap: () => _switchMode(mode),
                           child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
+                            duration: context.motionDuration(const Duration(milliseconds: 150)),
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             decoration: BoxDecoration(
                               color: selected ? context.colors.surface : null,

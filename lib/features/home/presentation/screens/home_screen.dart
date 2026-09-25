@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/networking/api_exception.dart';
+import '../../../../core/theme/app_color_tokens.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_bottom_sheet.dart';
 import '../../../../shared/widgets/app_card.dart';
@@ -23,14 +24,15 @@ import '../../../members/presentation/providers/member_providers.dart';
 
 /// Base hues for note cards — a light tint is used as the background, a
 /// darker shade of the same hue as the border, so each note reads as one
-/// coherent color rather than a flat pastel block.
-const _kNoteColors = [
-  AppColors.softYellow,
-  AppColors.accent,
-  AppColors.skyBlue,
-  AppColors.lavender,
-  AppColors.primary,
-];
+/// coherent color rather than a flat pastel block. A function (not a
+/// `const` list) because `accent`/`primary` are theme-dependent.
+List<Color> _kNoteColors(BuildContext context) => [
+      AppColors.softYellow,
+      context.colors.accent,
+      AppColors.skyBlue,
+      AppColors.lavender,
+      context.colors.primary,
+    ];
 
 String _timeLeftLabel(DateTime expiresAt) {
   final diff = expiresAt.difference(DateTime.now());
@@ -98,7 +100,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final household = ref.watch(currentHouseholdProvider);
     final greeting = _greeting;
-    final householdColor = householdColorFromHex(household?.color);
+    final householdColor = householdColorFromHex(context, household?.color);
     final householdEmoji = household?.emoji ?? kHouseholdEmojis.first;
 
     return Scaffold(
@@ -107,7 +109,7 @@ class HomeScreen extends ConsumerWidget {
           children: [
             Container(
               width: double.infinity,
-              color: AppColors.surface,
+              color: context.colors.surface,
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,7 +301,7 @@ class _SectionHeaderRow extends StatelessWidget {
             minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
-          child: Text(actionLabel, style: const TextStyle(color: AppColors.primary)),
+          child: Text(actionLabel, style: TextStyle(color: context.colors.primary)),
         ),
       ],
     );
@@ -344,7 +346,7 @@ class _EmptyStateCard extends StatelessWidget {
             ElevatedButton(
               onPressed: onPressed,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: context.colors.primary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -431,7 +433,8 @@ class _FamilyNotesSection extends ConsumerWidget {
                 itemBuilder: (context, index) {
                   final note = notes[index];
                   final canDelete = canModerate || note.authorMemberId == myMemberId;
-                  final color = _kNoteColors[index % _kNoteColors.length];
+                  final noteColors = _kNoteColors(context);
+                  final color = noteColors[index % noteColors.length];
 
                   return Container(
                     width: 180,
@@ -470,9 +473,9 @@ class _FamilyNotesSection extends ConsumerWidget {
                                   ),
                                   Text(
                                     _timeLeftLabel(note.expiresAt),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 11,
-                                      color: AppColors.textSecondary,
+                                      color: context.colors.textSecondary,
                                     ),
                                   ),
                                 ],
@@ -481,10 +484,10 @@ class _FamilyNotesSection extends ConsumerWidget {
                             if (canDelete)
                               InkWell(
                                 onTap: () => _delete(context, ref, note),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.close_rounded,
                                   size: 16,
-                                  color: AppColors.textSecondary,
+                                  color: context.colors.textSecondary,
                                 ),
                               ),
                           ],
@@ -712,10 +715,10 @@ class _AnnouncementCard extends StatelessWidget {
             height: 36,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.12),
+              color: context.colors.primary.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.campaign_rounded, color: AppColors.primary, size: 18),
+            child: Icon(Icons.campaign_rounded, color: context.colors.primary, size: 18),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -729,7 +732,7 @@ class _AnnouncementCard extends StatelessWidget {
                   style: Theme.of(context)
                       .textTheme
                       .bodySmall
-                      ?.copyWith(color: AppColors.textSecondary),
+                      ?.copyWith(color: context.colors.textSecondary),
                 ),
               ],
             ),
@@ -737,9 +740,9 @@ class _AnnouncementCard extends StatelessWidget {
           if (canDelete)
             InkWell(
               onTap: onDelete,
-              child: const Padding(
-                padding: EdgeInsets.only(left: 8),
-                child: Icon(Icons.close_rounded, size: 16, color: AppColors.textSecondary),
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Icon(Icons.close_rounded, size: 16, color: context.colors.textSecondary),
               ),
             ),
         ],
@@ -861,7 +864,7 @@ class _HouseholdSwitcherSheet extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.border, width: 1.5),
+              border: Border.all(color: context.colors.border, width: 1.5),
             ),
             child: Row(
               children: [
@@ -869,16 +872,16 @@ class _HouseholdSwitcherSheet extends ConsumerWidget {
                   width: 40,
                   height: 40,
                   alignment: Alignment.center,
-                  decoration: const BoxDecoration(
-                    color: AppColors.background,
+                  decoration: BoxDecoration(
+                    color: context.colors.background,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.add_rounded, color: AppColors.primary),
+                  child: Icon(Icons.add_rounded, color: context.colors.primary),
                 ),
                 const SizedBox(width: 12),
-                const Text(
+                Text(
                   'Create or join a household',
-                  style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
+                  style: TextStyle(color: context.colors.primary, fontWeight: FontWeight.w700),
                 ),
               ],
             ),
@@ -888,7 +891,7 @@ class _HouseholdSwitcherSheet extends ConsumerWidget {
         Center(
           child: TextButton(
             onPressed: () => Navigator.of(context).pop('logout'),
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            style: TextButton.styleFrom(foregroundColor: context.colors.error),
             child: const Text('Log out'),
           ),
         ),
@@ -913,7 +916,7 @@ class _HouseholdRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = household.color != null
-        ? householdColorFromHex(household.color)
+        ? householdColorFromHex(context, household.color)
         : AppColors.memberColor(fallbackIndex);
     final emoji = household.emoji ?? kHouseholdEmojis[fallbackIndex % kHouseholdEmojis.length];
     final count = household.memberCount;
@@ -924,10 +927,10 @@ class _HouseholdRow extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary.withValues(alpha: 0.08) : AppColors.background,
+          color: selected ? context.colors.primary.withValues(alpha: 0.08) : context.colors.background,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: selected ? AppColors.primary.withValues(alpha: 0.4) : AppColors.border,
+            color: selected ? context.colors.primary.withValues(alpha: 0.4) : context.colors.border,
           ),
         ),
         child: Row(
@@ -959,7 +962,7 @@ class _HouseholdRow extends StatelessWidget {
               ),
             ),
             if (selected)
-              const Icon(Icons.check_circle_rounded, color: AppColors.primary)
+              Icon(Icons.check_circle_rounded, color: context.colors.primary)
             else
               const SizedBox(width: 24, height: 24),
           ],
@@ -1026,7 +1029,7 @@ class _HouseholdStatusRow extends ConsumerWidget {
                   style: Theme.of(context)
                       .textTheme
                       .bodySmall
-                      ?.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w700),
+                      ?.copyWith(color: context.colors.textPrimary, fontWeight: FontWeight.w700),
                 ),
               ],
             ),
@@ -1051,7 +1054,7 @@ class _MoreRow extends StatelessWidget {
         Expanded(
           child: _MoreTile(
             icon: Icons.check_circle_rounded,
-            color: AppColors.primary,
+            color: context.colors.primary,
             label: 'Chores',
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
@@ -1068,7 +1071,7 @@ class _MoreRow extends StatelessWidget {
         Expanded(
           child: _MoreTile(
             icon: Icons.location_on_rounded,
-            color: AppColors.danger,
+            color: context.colors.error,
             label: 'Map',
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(

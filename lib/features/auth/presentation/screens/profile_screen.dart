@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/networking/api_exception.dart';
+import '../../../../core/theme/theme_mode_controller.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../providers/auth_controller.dart';
@@ -63,6 +64,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeModeProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
       body: SafeArea(
@@ -72,6 +75,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             key: _formKey,
             child: ListView(
               children: [
+                Text('Appearance', style: Theme.of(context).textTheme.bodySmall),
+                const SizedBox(height: 8),
+                SegmentedButton<ThemeMode>(
+                  segments: const [
+                    ButtonSegment(
+                      value: ThemeMode.light,
+                      label: Text('Light'),
+                      icon: Icon(Icons.light_mode_rounded),
+                    ),
+                    ButtonSegment(
+                      value: ThemeMode.dark,
+                      label: Text('Dark'),
+                      icon: Icon(Icons.dark_mode_rounded),
+                    ),
+                    ButtonSegment(
+                      value: ThemeMode.system,
+                      label: Text('System'),
+                      icon: Icon(Icons.settings_suggest_rounded),
+                    ),
+                  ],
+                  selected: {themeMode},
+                  onSelectionChanged: (selection) => ref
+                      .read(themeModeProvider.notifier)
+                      .setThemeMode(selection.first),
+                ),
+                const SizedBox(height: 24),
                 if (_errorMessage != null) ...[
                   Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
                   const SizedBox(height: 16),

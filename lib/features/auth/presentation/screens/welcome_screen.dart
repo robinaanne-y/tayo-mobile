@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/theme/app_color_tokens.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/screens/qr_scan_screen.dart';
 
@@ -18,29 +19,29 @@ class _Slide {
   final String body;
 }
 
-const _slides = [
-  _Slide(
-    emoji: '🏡',
-    color: AppColors.primary,
-    title: 'Your family, in sync',
-    body: 'Schedules, meals, groceries, and more — all in one calm, '
-        'friendly place your whole family will love opening every morning.',
-  ),
-  _Slide(
-    emoji: '🔔',
-    color: AppColors.skyBlue,
-    title: 'Never miss a thing',
-    body: 'Share calendars, track chores, plan trips, and manage permission '
-        'requests — all coordinated across every family member.',
-  ),
-  _Slide(
-    emoji: '🍽️',
-    color: AppColors.accent,
-    title: 'From meals to memories',
-    body: "Plan the week's dinners, build grocery lists together, and "
-        'celebrate the moments that matter most.',
-  ),
-];
+List<_Slide> _slides(BuildContext context) => [
+      _Slide(
+        emoji: '🏡',
+        color: context.colors.primary,
+        title: 'Your family, in sync',
+        body: 'Schedules, meals, groceries, and more — all in one calm, '
+            'friendly place your whole family will love opening every morning.',
+      ),
+      const _Slide(
+        emoji: '🔔',
+        color: AppColors.skyBlue,
+        title: 'Never miss a thing',
+        body: 'Share calendars, track chores, plan trips, and manage permission '
+            'requests — all coordinated across every family member.',
+      ),
+      _Slide(
+        emoji: '🍽️',
+        color: context.colors.accent,
+        title: 'From meals to memories',
+        body: "Plan the week's dinners, build grocery lists together, and "
+            'celebrate the moments that matter most.',
+      ),
+    ];
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -53,7 +54,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   int _current = 0;
 
   void _next() {
-    if (_current < _slides.length - 1) {
+    if (_current < _slides(context).length - 1) {
       setState(() => _current++);
     } else {
       context.go('/login');
@@ -68,7 +69,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final slide = _slides[_current];
+    final slide = _slides(context)[_current];
 
     return Scaffold(
       body: SafeArea(
@@ -83,7 +84,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     onPressed: _openScanner,
                     icon: const Icon(Icons.qr_code_scanner_rounded),
                     tooltip: 'Scan invite code',
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                   TextButton(
                     onPressed: () => context.go('/login'),
@@ -127,7 +128,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       slide.body,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.colors.textSecondary,
                             height: 1.5,
                           ),
                     ),
@@ -141,7 +142,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(_slides.length, (i) {
+                    children: List.generate(_slides(context).length, (i) {
                       final active = i == _current;
                       return AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
@@ -149,7 +150,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         width: active ? 24 : 8,
                         height: 8,
                         decoration: BoxDecoration(
-                          color: active ? slide.color : AppColors.border,
+                          color: active ? slide.color : context.colors.border,
                           borderRadius: BorderRadius.circular(999),
                         ),
                       );
@@ -162,7 +163,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       onPressed: _next,
                       style: ElevatedButton.styleFrom(backgroundColor: slide.color),
                       child: Text(
-                        _current < _slides.length - 1 ? 'Continue' : 'Get started',
+                        _current < _slides(context).length - 1 ? 'Continue' : 'Get started',
                       ),
                     ),
                   ),
@@ -176,10 +177,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       ),
                       GestureDetector(
                         onTap: () => context.go('/login'),
-                        child: const Text(
+                        child: Text(
                           'Sign in',
                           style: TextStyle(
-                            color: AppColors.primary,
+                            color: context.colors.primary,
                             fontWeight: FontWeight.w700,
                           ),
                         ),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/networking/api_exception.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_color_tokens.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../providers/auth_controller.dart';
@@ -91,7 +91,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: AppColors.primary,
+                        color: context.colors.primary,
                         borderRadius: BorderRadius.circular(16),
                       ),
                       alignment: Alignment.center,
@@ -121,9 +121,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: AppColors.background,
+                    color: context.colors.background,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(color: context.colors.border),
                   ),
                   child: Row(
                     children: _AuthMode.values.map((mode) {
@@ -135,7 +135,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             duration: const Duration(milliseconds: 150),
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             decoration: BoxDecoration(
-                              color: selected ? AppColors.surface : null,
+                              color: selected ? context.colors.surface : null,
                               borderRadius: BorderRadius.circular(10),
                               boxShadow: selected
                                   ? [
@@ -154,8 +154,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 fontWeight: FontWeight.w700,
                                 fontSize: 13,
                                 color: selected
-                                    ? AppColors.primary
-                                    : AppColors.textSecondary,
+                                    ? context.colors.primary
+                                    : context.colors.textSecondary,
                               ),
                             ),
                           ),

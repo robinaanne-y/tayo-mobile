@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_color_tokens.dart';
 
 /// Section title with an optional trailing text action, used above list-style
 /// content blocks throughout the app.
@@ -25,7 +25,7 @@ class SectionHeader extends StatelessWidget {
         if (actionLabel != null)
           TextButton(
             onPressed: onAction,
-            style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+            style: TextButton.styleFrom(foregroundColor: context.colors.primary),
             child: Text(actionLabel!),
           ),
       ],

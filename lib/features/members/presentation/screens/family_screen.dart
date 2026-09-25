@@ -6,6 +6,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/networking/api_exception.dart';
+import '../../../../core/theme/app_color_tokens.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_bottom_sheet.dart';
 import '../../../../shared/widgets/app_text_field.dart';
@@ -85,13 +86,13 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           ListTile(
-            leading: const Icon(Icons.person_add_rounded, color: AppColors.primary),
+            leading: Icon(Icons.person_add_rounded, color: context.colors.primary),
             title: const Text('Add a member'),
             subtitle: const Text('Enter their details yourself'),
             onTap: () => Navigator.of(context).pop('add'),
           ),
           ListTile(
-            leading: const Icon(Icons.link_rounded, color: AppColors.primary),
+            leading: Icon(Icons.link_rounded, color: context.colors.primary),
             title: const Text('Invite to household'),
             subtitle: const Text('Share a link or QR code'),
             onTap: () => Navigator.of(context).pop('invite'),
@@ -131,7 +132,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
           children: [
             Container(
               width: double.infinity,
-              color: AppColors.surface,
+              color: context.colors.surface,
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,7 +178,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
                             ),
                   ),
                   Material(
-                    color: AppColors.primary,
+                    color: context.colors.primary,
                     borderRadius: BorderRadius.circular(999),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(999),
@@ -285,11 +286,11 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
                                             ? 'No account yet'
                                             : 'Account connected',
                                         background: member.isPlaceholder
-                                            ? AppColors.border
-                                            : AppColors.primary.withValues(alpha: 0.15),
+                                            ? context.colors.border
+                                            : context.colors.primary.withValues(alpha: 0.15),
                                         foreground: member.isPlaceholder
-                                            ? AppColors.textSecondary
-                                            : AppColors.primary,
+                                            ? context.colors.textSecondary
+                                            : context.colors.primary,
                                       ),
                                       if (member.birthDate != null) ...[
                                         const SizedBox(height: 6),
@@ -301,8 +302,8 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
                                     ],
                                   ),
                                 ),
-                                const Icon(Icons.chevron_right_rounded,
-                                    color: AppColors.border),
+                                Icon(Icons.chevron_right_rounded,
+                                    color: context.colors.border),
                               ],
                             ),
                           ),
@@ -373,12 +374,12 @@ class _MemberDetail extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           ListTile(
-            leading: const Icon(Icons.photo_camera_rounded, color: AppColors.primary),
+            leading: Icon(Icons.photo_camera_rounded, color: context.colors.primary),
             title: const Text('Take a photo'),
             onTap: () => Navigator.of(context).pop(ImageSource.camera),
           ),
           ListTile(
-            leading: const Icon(Icons.photo_library_rounded, color: AppColors.primary),
+            leading: Icon(Icons.photo_library_rounded, color: context.colors.primary),
             title: const Text('Choose from gallery'),
             onTap: () => Navigator.of(context).pop(ImageSource.gallery),
           ),
@@ -472,8 +473,8 @@ class _MemberDetail extends ConsumerWidget {
                       width: 28,
                       height: 28,
                       alignment: Alignment.center,
-                      decoration: const BoxDecoration(
-                        color: AppColors.primary,
+                      decoration: BoxDecoration(
+                        color: context.colors.primary,
                         shape: BoxShape.circle,
                         border: Border.fromBorderSide(
                           BorderSide(color: Colors.white, width: 2),
@@ -523,7 +524,7 @@ class _DetailRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.colors.border),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -849,17 +850,17 @@ class _InviteSheetState extends ConsumerState<_InviteSheet> {
                   margin: const EdgeInsets.only(right: 8),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(
-                    color: selected ? AppColors.primary : AppColors.background,
+                    color: selected ? context.colors.primary : context.colors.background,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: selected ? AppColors.primary : AppColors.border,
+                      color: selected ? context.colors.primary : context.colors.border,
                     ),
                   ),
                   alignment: Alignment.center,
                   child: Text(
                     role.label,
                     style: TextStyle(
-                      color: selected ? Colors.white : AppColors.textPrimary,
+                      color: selected ? Colors.white : context.colors.textPrimary,
                       fontWeight: FontWeight.w700,
                       fontSize: 12,
                     ),
@@ -904,9 +905,9 @@ class _ShareLinkSheet extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppColors.background,
+            color: context.colors.background,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: context.colors.border),
           ),
           child: Text(link, style: Theme.of(context).textTheme.bodySmall),
         ),
@@ -917,14 +918,14 @@ class _ShareLinkSheet extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: context.colors.border),
             ),
             child: QrImageView(
               data: link,
               size: 160,
               backgroundColor: Colors.white,
-              eyeStyle: const QrEyeStyle(color: AppColors.textPrimary),
-              dataModuleStyle: const QrDataModuleStyle(color: AppColors.textPrimary),
+              eyeStyle: QrEyeStyle(color: context.colors.textPrimary),
+              dataModuleStyle: QrDataModuleStyle(color: context.colors.textPrimary),
             ),
           ),
         ),

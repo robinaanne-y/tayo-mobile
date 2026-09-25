@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/networking/api_exception.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_color_tokens.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../auth/presentation/providers/auth_controller.dart';
@@ -22,7 +22,8 @@ class _CreateHouseholdScreenState extends ConsumerState<CreateHouseholdScreen> {
   final _nameController = TextEditingController();
 
   int _step = 1;
-  Color _color = kHouseholdColors.first;
+  Color? _color;
+  Color get _selectedColor => _color!;
   String _emoji = kHouseholdEmojis.first;
 
   bool _isLoading = false;
@@ -55,7 +56,7 @@ class _CreateHouseholdScreenState extends ConsumerState<CreateHouseholdScreen> {
     try {
       final household = await ref.read(householdRepositoryProvider).create(
             _nameController.text.trim(),
-            color: householdColorToHex(_color),
+            color: householdColorToHex(_selectedColor),
             emoji: _emoji,
           );
       await ref.read(authControllerProvider.notifier).refreshUser();
@@ -73,6 +74,9 @@ class _CreateHouseholdScreenState extends ConsumerState<CreateHouseholdScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Lazily resolved (not a field initializer) since the default swatch
+    // is the theme's primary color, which needs `context`.
+    _color ??= context.colors.primary;
     final name = _nameController.text.trim();
     // Mandatory during first-time onboarding (no way out — you must create
     // a household to proceed). Reached later from the household switcher
@@ -102,7 +106,7 @@ class _CreateHouseholdScreenState extends ConsumerState<CreateHouseholdScreen> {
                       height: 6,
                       margin: EdgeInsets.only(right: s == 1 ? 6 : 0),
                       decoration: BoxDecoration(
-                        color: active ? AppColors.primary : AppColors.border,
+                        color: active ? context.colors.primary : context.colors.border,
                         borderRadius: BorderRadius.circular(999),
                       ),
                     ),
@@ -175,8 +179,8 @@ class _CreateHouseholdScreenState extends ConsumerState<CreateHouseholdScreen> {
             const TextSpan(text: 'Pick a color and emoji for '),
             TextSpan(
               text: name,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
+              style: TextStyle(
+                color: context.colors.textPrimary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -192,8 +196,8 @@ class _CreateHouseholdScreenState extends ConsumerState<CreateHouseholdScreen> {
       Wrap(
         spacing: 10,
         runSpacing: 10,
-        children: kHouseholdColors.map((c) {
-          final selected = c == _color;
+        children: kHouseholdColors(context).map((c) {
+          final selected = c == _selectedColor;
           return GestureDetector(
             onTap: () => setState(() => _color = c),
             child: Container(
@@ -203,7 +207,7 @@ class _CreateHouseholdScreenState extends ConsumerState<CreateHouseholdScreen> {
                 color: c,
                 shape: BoxShape.circle,
                 border: selected
-                    ? Border.all(color: AppColors.background, width: 3)
+                    ? Border.all(color: context.colors.background, width: 3)
                     : null,
                 boxShadow: selected
                     ? [BoxShadow(color: c, blurRadius: 0, spreadRadius: 2)]
@@ -231,10 +235,10 @@ class _CreateHouseholdScreenState extends ConsumerState<CreateHouseholdScreen> {
               height: 40,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: selected ? _color.withValues(alpha: 0.15) : AppColors.background,
+                color: selected ? _selectedColor.withValues(alpha: 0.15) : context.colors.background,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: selected ? _color : AppColors.border,
+                  color: selected ? _selectedColor : context.colors.border,
                   width: selected ? 2 : 1,
                 ),
               ),
@@ -251,9 +255,9 @@ class _CreateHouseholdScreenState extends ConsumerState<CreateHouseholdScreen> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 28),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.colors.border),
       ),
       child: Column(
         children: [
@@ -262,9 +266,9 @@ class _CreateHouseholdScreenState extends ConsumerState<CreateHouseholdScreen> {
             height: 80,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: _color.withValues(alpha: 0.15),
+              color: _selectedColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: _color.withValues(alpha: 0.35), width: 3),
+              border: Border.all(color: _selectedColor.withValues(alpha: 0.35), width: 3),
             ),
             child: Text(_emoji, style: const TextStyle(fontSize: 40)),
           ),

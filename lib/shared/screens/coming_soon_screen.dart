@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_color_tokens.dart';
 
 /// Placeholder tab body for a feature phase that hasn't been built yet.
 class ComingSoonScreen extends StatelessWidget {
@@ -30,10 +30,10 @@ class ComingSoonScreen extends StatelessWidget {
                 height: 72,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
+                  color: context.colors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Icon(icon, color: AppColors.primary, size: 32),
+                child: Icon(icon, color: context.colors.primary, size: 32),
               ),
               const SizedBox(height: 20),
               Text('Coming soon', style: Theme.of(context).textTheme.titleLarge),

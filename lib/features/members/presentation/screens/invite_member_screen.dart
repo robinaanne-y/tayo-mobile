@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/networking/api_exception.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_color_tokens.dart';
 import '../../../../shared/widgets/app_bottom_sheet.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/member_avatar.dart';
@@ -40,7 +40,7 @@ class _InviteMemberScreenState extends ConsumerState<InviteMemberScreen> {
   @override
   Widget build(BuildContext context) {
     final household = ref.watch(currentHouseholdProvider);
-    final color = householdColorFromHex(household?.color);
+    final color = householdColorFromHex(context, household?.color);
     final emoji = household?.emoji ?? kHouseholdEmojis.first;
 
     return Scaffold(
@@ -117,7 +117,7 @@ class _InviteMemberScreenState extends ConsumerState<InviteMemberScreen> {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: AppColors.border,
+                          color: context.colors.border,
                           width: 1.5,
                           style: BorderStyle.solid,
                         ),
@@ -129,17 +129,17 @@ class _InviteMemberScreenState extends ConsumerState<InviteMemberScreen> {
                             height: 40,
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              color: AppColors.background,
+                              color: context.colors.background,
                               shape: BoxShape.circle,
-                              border: Border.all(color: AppColors.border),
+                              border: Border.all(color: context.colors.border),
                             ),
-                            child: const Icon(Icons.add_rounded, color: AppColors.primary),
+                            child: Icon(Icons.add_rounded, color: context.colors.primary),
                           ),
                           const SizedBox(width: 12),
-                          const Text(
+                          Text(
                             'Add family member',
                             style: TextStyle(
-                              color: AppColors.primary,
+                              color: context.colors.primary,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -151,7 +151,7 @@ class _InviteMemberScreenState extends ConsumerState<InviteMemberScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.08),
+                      color: context.colors.primary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Row(
@@ -165,7 +165,7 @@ class _InviteMemberScreenState extends ConsumerState<InviteMemberScreen> {
                               style: Theme.of(context)
                                   .textTheme
                                   .bodySmall
-                                  ?.copyWith(color: AppColors.textPrimary, height: 1.4),
+                                  ?.copyWith(color: context.colors.textPrimary, height: 1.4),
                               children: const [
                                 TextSpan(
                                   text: 'Have a baby or young child? ',
@@ -311,10 +311,10 @@ class _AddMemberFormState extends ConsumerState<_AddMemberForm> {
                     margin: const EdgeInsets.only(right: 8),
                     padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
                     decoration: BoxDecoration(
-                      color: selected ? AppColors.primary : AppColors.background,
+                      color: selected ? context.colors.primary : context.colors.background,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: selected ? AppColors.primary : AppColors.border,
+                        color: selected ? context.colors.primary : context.colors.border,
                       ),
                     ),
                     alignment: Alignment.center,
@@ -326,7 +326,7 @@ class _AddMemberFormState extends ConsumerState<_AddMemberForm> {
                         Text(
                           role.label,
                           style: TextStyle(
-                            color: selected ? Colors.white : AppColors.textPrimary,
+                            color: selected ? Colors.white : context.colors.textPrimary,
                             fontWeight: FontWeight.w700,
                             fontSize: 13,
                           ),
@@ -337,7 +337,7 @@ class _AddMemberFormState extends ConsumerState<_AddMemberForm> {
                           style: TextStyle(
                             color: selected
                                 ? Colors.white.withValues(alpha: 0.85)
-                                : AppColors.textSecondary,
+                                : context.colors.textSecondary,
                             fontSize: 11,
                           ),
                         ),
@@ -382,14 +382,14 @@ class _RoleIcon extends StatelessWidget {
     return switch (role) {
       HouseholdRole.adult => Icon(
           Icons.person_rounded,
-          color: selected ? Colors.white : AppColors.textSecondary,
+          color: selected ? Colors.white : context.colors.textSecondary,
           size: 22,
         ),
       HouseholdRole.minor => const Text('🧒', style: TextStyle(fontSize: 20)),
       HouseholdRole.child => const Text('👶', style: TextStyle(fontSize: 20)),
       HouseholdRole.owner => Icon(
           Icons.shield_rounded,
-          color: selected ? Colors.white : AppColors.textSecondary,
+          color: selected ? Colors.white : context.colors.textSecondary,
           size: 22,
         ),
     };

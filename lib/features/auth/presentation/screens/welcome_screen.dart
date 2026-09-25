@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_color_tokens.dart';
@@ -82,7 +83,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 children: [
                   IconButton(
                     onPressed: _openScanner,
-                    icon: const Icon(Icons.qr_code_scanner_rounded),
+                    icon: const Icon(LucideIcons.scanLine),
                     tooltip: 'Scan invite code',
                     color: context.colors.textSecondary,
                   ),

@@ -64,6 +64,9 @@ dependencies:
   image_picker: ^1.1.2
   mobile_scanner: ^7.4.0
 
+  # Design system icon set (outline style, per the Figma handoff)
+  lucide_icons_flutter: ^3.1.20
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

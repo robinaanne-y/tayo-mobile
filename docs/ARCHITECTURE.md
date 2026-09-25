@@ -1068,6 +1068,17 @@ Flutter widgets should primarily handle presentation and user interaction.
 > `AppBottomSheet` so far — not swept into every screen's individual
 > `SizedBox`/`EdgeInsets` calls, since most of those didn't need to
 > change to match the new values.
+>
+> Icons come from `lucide_icons_flutter` (`LucideIcons.*`), matching the
+> handoff's "consistent outline icon family" call — not the `lucide_icons`
+> package of the same idea, which fails to compile against this SDK
+> (`IconData` became a `final class`, and that package subclasses it;
+> `lucide_icons_flutter` instead defines each icon as a plain `const
+> IconData(...)` backed by a bundled icon font, same pattern as
+> `cupertino_icons`). Every former `Icons.X_rounded` reference was mapped
+> to its closest Lucide equivalent (e.g. `home`, `checkCircle`,
+> `shoppingBag`) — sizes and colors were left untouched, only the glyph
+> family changed.
 
 ---
 

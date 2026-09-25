@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/networking/api_exception.dart';
@@ -82,17 +83,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ButtonSegment(
                       value: ThemeMode.light,
                       label: Text('Light'),
-                      icon: Icon(Icons.light_mode_rounded),
+                      icon: Icon(LucideIcons.sun),
                     ),
                     ButtonSegment(
                       value: ThemeMode.dark,
                       label: Text('Dark'),
-                      icon: Icon(Icons.dark_mode_rounded),
+                      icon: Icon(LucideIcons.moon),
                     ),
                     ButtonSegment(
                       value: ThemeMode.system,
                       label: Text('System'),
-                      icon: Icon(Icons.settings_suggest_rounded),
+                      icon: Icon(LucideIcons.monitor),
                     ),
                   ],
                   selected: {themeMode},

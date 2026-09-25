@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/networking/api_exception.dart';
@@ -138,7 +139,7 @@ class _HouseholdSettingsScreenState
                         : null,
                   ),
                   child: selected
-                      ? const Icon(Icons.check_rounded, color: Colors.white, size: 18)
+                      ? const Icon(LucideIcons.check, color: Colors.white, size: 18)
                       : null,
                 ),
               );

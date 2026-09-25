@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -94,7 +95,7 @@ class _CreateHouseholdScreenState extends ConsumerState<CreateHouseholdScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: IconButton(
-                    icon: const Icon(Icons.close_rounded),
+                    icon: const Icon(LucideIcons.x),
                     onPressed: () => context.go('/home'),
                   ),
                 ),
@@ -214,7 +215,7 @@ class _CreateHouseholdScreenState extends ConsumerState<CreateHouseholdScreen> {
                     : null,
               ),
               child: selected
-                  ? const Icon(Icons.check_rounded, color: Colors.white, size: 18)
+                  ? const Icon(LucideIcons.check, color: Colors.white, size: 18)
                   : null,
             ),
           );

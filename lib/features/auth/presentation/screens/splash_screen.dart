@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_color_tokens.dart';
@@ -29,7 +30,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.home_rounded, size: 64, color: AppColors.mint),
+            Icon(LucideIcons.home, size: 64, color: AppColors.mint),
             const SizedBox(height: 16),
             Text(
               'Tayo',

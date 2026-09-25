@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -129,7 +130,7 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(width: 12),
                   IconButton(
-                    icon: const Icon(Icons.notifications_none_rounded),
+                    icon: const Icon(LucideIcons.bell),
                     tooltip: 'Notifications',
                     onPressed: null,
                   ),
@@ -174,7 +175,7 @@ class HomeScreen extends ConsumerWidget {
                             ),
                           ),
                           Icon(
-                            Icons.keyboard_arrow_down_rounded,
+                            LucideIcons.chevronDown,
                             color: householdColor,
                             size: 18,
                           ),
@@ -485,7 +486,7 @@ class _FamilyNotesSection extends ConsumerWidget {
                               InkWell(
                                 onTap: () => _delete(context, ref, note),
                                 child: Icon(
-                                  Icons.close_rounded,
+                                  LucideIcons.x,
                                   size: 16,
                                   color: context.colors.textSecondary,
                                 ),
@@ -718,7 +719,7 @@ class _AnnouncementCard extends StatelessWidget {
               color: context.colors.primary.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.campaign_rounded, color: context.colors.primary, size: 18),
+            child: Icon(LucideIcons.megaphone, color: context.colors.primary, size: 18),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -742,7 +743,7 @@ class _AnnouncementCard extends StatelessWidget {
               onTap: onDelete,
               child: Padding(
                 padding: const EdgeInsets.only(left: 8),
-                child: Icon(Icons.close_rounded, size: 16, color: context.colors.textSecondary),
+                child: Icon(LucideIcons.x, size: 16, color: context.colors.textSecondary),
               ),
             ),
         ],
@@ -876,7 +877,7 @@ class _HouseholdSwitcherSheet extends ConsumerWidget {
                     color: context.colors.background,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.add_rounded, color: context.colors.primary),
+                  child: Icon(LucideIcons.plus, color: context.colors.primary),
                 ),
                 const SizedBox(width: 12),
                 Text(
@@ -962,7 +963,7 @@ class _HouseholdRow extends StatelessWidget {
               ),
             ),
             if (selected)
-              Icon(Icons.check_circle_rounded, color: context.colors.primary)
+              Icon(LucideIcons.checkCircle, color: context.colors.primary)
             else
               const SizedBox(width: 24, height: 24),
           ],
@@ -1053,14 +1054,14 @@ class _MoreRow extends StatelessWidget {
       children: [
         Expanded(
           child: _MoreTile(
-            icon: Icons.check_circle_rounded,
+            icon: LucideIcons.checkCircle,
             color: context.colors.primary,
             label: 'Chores',
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => const ComingSoonScreen(
                   title: 'Chores',
-                  icon: Icons.check_circle_rounded,
+                  icon: LucideIcons.checkCircle,
                   message: 'Assigning and tracking chores is on its way.',
                 ),
               ),
@@ -1070,14 +1071,14 @@ class _MoreRow extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: _MoreTile(
-            icon: Icons.location_on_rounded,
+            icon: LucideIcons.mapPin,
             color: context.colors.error,
             label: 'Map',
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => const ComingSoonScreen(
                   title: 'Map',
-                  icon: Icons.location_on_rounded,
+                  icon: LucideIcons.mapPin,
                   message: "Seeing your family's location is on its way.",
                 ),
               ),
@@ -1087,14 +1088,14 @@ class _MoreRow extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: _MoreTile(
-            icon: Icons.shield_rounded,
+            icon: LucideIcons.shield,
             color: AppColors.skyBlue,
             label: 'Permissions',
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => const ComingSoonScreen(
                   title: 'Permissions',
-                  icon: Icons.shield_rounded,
+                  icon: LucideIcons.shield,
                   message: 'Requesting and approving permissions is on its way.',
                 ),
               ),
@@ -1104,7 +1105,7 @@ class _MoreRow extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: _MoreTile(
-            icon: Icons.person_rounded,
+            icon: LucideIcons.user,
             color: AppColors.lavender,
             label: 'Profile',
             onTap: () => Navigator.of(context).push(

@@ -1091,6 +1091,21 @@ Flutter widgets should primarily handle presentation and user interaction.
 > and chips had no comparable duplication to justify new components —
 > `PrimaryButton`/`StatusPill` already cover the one real Button/Chip
 > pattern each.
+>
+> An accessibility pass covers the handoff's tap-target, text-scaling and
+> reduced-motion guidance for the concrete cases that existed: the two
+> icon-only delete buttons on Home (Family Notes, Announcements) get a
+> `Padding(EdgeInsets.all(14))` inside their `InkWell` so the tappable
+> area reaches 44×44 without growing the visible 16px glyph; the Home
+> household-name pill and the "Setting up {household}" header on the
+> invite-members screen wrap their name `Text` in `Flexible`/`Expanded`
+> with `overflow: TextOverflow.ellipsis, maxLines: 1` so a long household
+> name truncates instead of overflowing the row; and
+> `core/utils/accessibility.dart`'s `context.motionDuration(Duration)`
+> collapses an `AnimatedContainer`'s duration to zero when
+> `MediaQuery.disableAnimations` is set (the OS/browser reduced-motion
+> signal), applied to the login mode-switch and welcome-screen onboarding
+> animations.
 
 ---
 

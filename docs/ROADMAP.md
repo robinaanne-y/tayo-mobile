@@ -296,18 +296,22 @@ sections are already in place.
 
 - [x] Personal schedules (private events, visible only to their creator)
 - [x] Shared household calendar (household-visible events)
-- [x] Month view (`lib/features/calendar/presentation/screens/calendar_screen.dart`,
-      via the `table_calendar` package)
+- [x] Month/Week/Day views (`lib/features/calendar/presentation/screens/calendar_screen.dart`
+      — Month via `table_calendar`, Week/Day are custom views over the
+      same event data)
 - [x] Event creation
 - [x] Event details / editing
 - [x] Event visibility (private / household — see below)
+- [x] Events color-coded by creator (a member-color legend in the
+      Calendar header, matching each event card's left border and the
+      month grid's day markers — reuses the existing
+      `AppColors.memberColor(index)` convention, no schema change)
 - [x] Home's "Today's Schedule" wired to real data (Phase 2 leftover,
       built together with this slice since it's a read-through of the
       same `events` endpoint)
 
 ## Deferred to a later increment
 
-- [ ] Week/day views (month view only for now)
 - [ ] Recurring events
 - [ ] Multiple-household visibility (`selected_households`/
       `all_member_households`)
@@ -331,9 +335,9 @@ Deferred (API roadmap has the schema-extensibility notes):
 
 Partially met: a family can use the app as its own household's shared
 calendar (create, edit, delete events; private vs. shared visibility;
-month view). A member seeing the right subset of events across
-*multiple* households, and everything in "Deferred" above, remains for a
-later pass.
+Month/Week/Day views; color-coded by who owns each event). A member
+seeing the right subset of events across *multiple* households, and
+everything in "Deferred" above, remains for a later pass.
 
 ---
 

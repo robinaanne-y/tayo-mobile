@@ -517,18 +517,32 @@ The calendar should query events through authorization-aware services rather tha
 > powers Home's `_TodaysScheduleSection`, replacing its former static
 > empty-state block — this also closes out Phase 2's "Today's Schedule"/
 > "Upcoming events" checklist items, since both were always meant to be a
-> read-through of Calendar data. `currentHouseholdEventsForMonthProvider`
-> (a `family` provider keyed by the viewed month) powers the Calendar
-> screen itself. Browsing anything beyond today happens by paging the
-> Calendar screen's month view — deliberately not a second Home widget,
+> read-through of Calendar data. Browsing anything beyond today happens
+> on the Calendar screen itself — deliberately not a second Home widget,
 > since there's no distinct mockup calling for one.
 >
-> Week/day views, recurring events, cross-household visibility,
-> participants, and location are not built yet — see `ROADMAP.md` →
-> Phase 3 for the deferred list, and `tayo-api`'s `ARCHITECTURE.md`/
-> `ROADMAP.md` for the schema-extensibility notes (visibility is a plain
-> string column specifically so the remaining levels are a validation
-> change later, not a migration).
+> `CalendarScreen` has Month/Week/Day view modes (a local
+> `_CalendarViewMode` enum), all three reading from
+> `currentHouseholdEventsInRangeProvider` — a `family` provider keyed by
+> an arbitrary `({DateTime start, DateTime end})` range record (Dart
+> records give it structural equality for free, so no wrapper class was
+> needed) rather than the month-only shape it started with. Month view
+> keeps `table_calendar`'s grid (with a custom `markerBuilder` painting
+> owner-colored dots instead of its default generic marker); Week is a
+> plain 7-cell `Row` (no second calendar package); Day is just the shared
+> date sub-header (with prev/next chevrons, since nothing else in that
+> mode lets you change the day) and the event list. Every event is
+> color-coded by its creator using the same `AppColors.memberColor(index)`
+> convention `family_screen.dart`/`MemberAvatar` already use — a member's
+> position in `currentHouseholdMembersProvider`'s list — surfaced as a
+> legend row in the Calendar header and as each event card's left border.
+>
+> Recurring events, cross-household visibility, participants, and
+> location are still not built — see `ROADMAP.md` → Phase 3 for the
+> deferred list, and `tayo-api`'s `ARCHITECTURE.md`/`ROADMAP.md` for the
+> schema-extensibility notes (visibility is a plain string column
+> specifically so the remaining levels are a validation change later, not
+> a migration).
 
 ---
 

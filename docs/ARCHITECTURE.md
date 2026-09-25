@@ -435,9 +435,13 @@ home
 
 Avoid storing a duplicate "Home Feed" copy of every event.
 
-> **Foundation note:** not implemented yet. The current `HomeScreen` in
-> Flutter is a static placeholder (see section 25) that only establishes
-> navigation — no `/api/v1/home` endpoint exists. This is Phase 2 work.
+> **Foundation note:** `HomeScreen` is real (see section 25), with each
+> section reading its own module's endpoint directly rather than through
+> a `GET /api/v1/home` aggregation endpoint, which still doesn't exist —
+> Family Notes, Announcements, and (as of Phase 3's core slice) `today's
+> events` are live; the rest of the sections remain honest empty states
+> until their phases land. See section 11 for what's implemented for
+> Calendar.
 
 ---
 
@@ -495,6 +499,36 @@ An event should contain information such as:
 - recurrence information
 
 The calendar should query events through authorization-aware services rather than exposing all household events directly.
+
+> **Foundation note — Phase 3 core slice:**
+>
+> `lib/features/calendar/` (new, `households/`-style full feature shape:
+> `data/event_repository.dart`, `domain/event.dart`,
+> `presentation/{providers/event_providers.dart, screens/calendar_screen.dart}`)
+> implements event CRUD against `households/{household}/events`, with two
+> new packages: `table_calendar` (the month-view grid on
+> `CalendarScreen`) and `intl` (time/date formatting — neither existed in
+> the project before). `EventVisibility` is `private`/`household` only
+> for now, matching the API's current schema; `ApiClient` gained a `put()`
+> method (it previously only had `get`/`post`/`patch`/`delete`) since
+> event updates use `PUT`.
+>
+> `currentHouseholdTodaysEventsProvider` (queries events for just today)
+> powers Home's `_TodaysScheduleSection`, replacing its former static
+> empty-state block — this also closes out Phase 2's "Today's Schedule"/
+> "Upcoming events" checklist items, since both were always meant to be a
+> read-through of Calendar data. `currentHouseholdEventsForMonthProvider`
+> (a `family` provider keyed by the viewed month) powers the Calendar
+> screen itself. Browsing anything beyond today happens by paging the
+> Calendar screen's month view — deliberately not a second Home widget,
+> since there's no distinct mockup calling for one.
+>
+> Week/day views, recurring events, cross-household visibility,
+> participants, and location are not built yet — see `ROADMAP.md` →
+> Phase 3 for the deferred list, and `tayo-api`'s `ARCHITECTURE.md`/
+> `ROADMAP.md` for the schema-extensibility notes (visibility is a plain
+> string column specifically so the remaining levels are a validation
+> change later, not a migration).
 
 ---
 

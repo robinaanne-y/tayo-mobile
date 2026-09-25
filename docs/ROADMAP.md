@@ -5,12 +5,17 @@
 > activation, user profile editing, household switching, member profile
 > editing, household profile settings) is fully implemented. Phase 2 (Home
 > & Family Feed) is in progress — the Home screen layout, Family Notes,
-> and Announcements are real; the rest of the feed is an honest empty
-> state until Phases 3-7 land. Before Phase 3, the app's color system was
-> overhauled and a real Light/Dark/System theme mode shipped (toggle in
-> Profile → Appearance) — see `ARCHITECTURE.md` §25 "Foundation note —
-> Theming". See `ARCHITECTURE.md` → "Foundation Implementation Notes" for
-> exactly what exists today and how to run it.
+> Announcements, and (as of Phase 3's core slice) Today's Schedule are
+> real; the rest of the feed is an honest empty state until Phases 4-7
+> land. The app's color system was overhauled and a real Light/Dark/System
+> theme mode shipped (toggle in Profile → Appearance) — see
+> `ARCHITECTURE.md` §25 "Foundation note — Theming". Phase 3's core slice
+> (event CRUD, month-view Calendar, private/household visibility) is done
+> — see the Phase 3 section below and `ARCHITECTURE.md` for what's
+> implemented now versus deferred (recurring events, week/day views,
+> cross-household visibility, participants, location). See
+> `ARCHITECTURE.md` → "Foundation Implementation Notes" for exactly what
+> exists today and how to run it.
 
 ## 1. Product Vision
 
@@ -206,10 +211,10 @@ real API and is reflected back on the Family screen.
 ## Features
 
 - [x] Family notes (create, list, delete, 24-hour expiration)
-- [ ] Today's schedule (Home UI redesigned to match the mockup; the data
-      itself is a read-through of Calendar events, so it stays an honest
-      empty state until Phase 3 ships)
-- [ ] Upcoming events (same — Phase 3)
+- [x] Today's schedule (real data as of Phase 3's core slice — a
+      read-through of today's events; see Phase 3 below)
+- [x] Upcoming events (browsing anything beyond today happens on the full
+      Calendar screen rather than a second Home widget — see Phase 3)
 - [x] Announcements (create, list, delete — Owner/Adult post, anyone reads)
 - [ ] Reminders (Phase 9 — read-through of other modules' due dates, no
       dedicated table)
@@ -287,32 +292,48 @@ sections are already in place.
 
 # Phase 3 — Calendar & Scheduling
 
-## Features
+## Core slice ✅ Implemented
 
-- Personal schedules
-- Shared household calendar
-- Month/week/day views
-- Event creation
-- Event details
-- Recurring events
-- Event visibility
-- Multiple-household visibility
-- Member filtering
-- Location
-- Participants
+- [x] Personal schedules (private events, visible only to their creator)
+- [x] Shared household calendar (household-visible events)
+- [x] Month view (`lib/features/calendar/presentation/screens/calendar_screen.dart`,
+      via the `table_calendar` package)
+- [x] Event creation
+- [x] Event details / editing
+- [x] Event visibility (private / household — see below)
+- [x] Home's "Today's Schedule" wired to real data (Phase 2 leftover,
+      built together with this slice since it's a read-through of the
+      same `events` endpoint)
+
+## Deferred to a later increment
+
+- [ ] Week/day views (month view only for now)
+- [ ] Recurring events
+- [ ] Multiple-household visibility (`selected_households`/
+      `all_member_households`)
+- [ ] Member filtering
+- [ ] Location
+- [ ] Participants
 
 ## Visibility Options
 
-An event may be:
+Implemented now:
 
-- Private
+- Private (creator only)
 - Visible to one household
+
+Deferred (API roadmap has the schema-extensibility notes):
+
 - Visible to multiple households
 - Visible to all households the member belongs to
 
 ### Milestone
 
-A family can use the app as its shared household calendar.
+Partially met: a family can use the app as its own household's shared
+calendar (create, edit, delete events; private vs. shared visibility;
+month view). A member seeing the right subset of events across
+*multiple* households, and everything in "Deferred" above, remains for a
+later pass.
 
 ---
 

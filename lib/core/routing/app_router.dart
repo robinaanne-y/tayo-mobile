@@ -7,6 +7,7 @@ import '../../features/auth/presentation/providers/auth_controller.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/welcome_screen.dart';
+import '../../features/calendar/presentation/screens/calendar_screen.dart';
 import '../../features/households/presentation/screens/create_household_screen.dart';
 import '../../features/households/presentation/screens/join_household_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
@@ -103,11 +104,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [
             GoRoute(
               path: '/calendar',
-              builder: (context, state) => const ComingSoonScreen(
-                title: 'Calendar',
-                icon: LucideIcons.calendarDays,
-                message: 'Shared household scheduling is on its way.',
-              ),
+              builder: (context, state) => const CalendarScreen(),
             ),
           ]),
           StatefulShellBranch(routes: [

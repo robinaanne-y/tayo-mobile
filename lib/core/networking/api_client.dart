@@ -55,6 +55,9 @@ class ApiClient {
   Future<Response<dynamic>> patch(String path, {Object? data}) =>
       _request(() => _dio.patch(path, data: data));
 
+  Future<Response<dynamic>> put(String path, {Object? data}) =>
+      _request(() => _dio.put(path, data: data));
+
   Future<Response<dynamic>> delete(String path) =>
       _request(() => _dio.delete(path));
 

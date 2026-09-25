@@ -53,6 +53,9 @@ dependencies:
   # Secure token storage
   flutter_secure_storage: ^9.2.2
 
+  # Persisting simple preferences (e.g. theme mode)
+  shared_preferences: ^2.3.3
+
   # Design system fonts (Nunito headings / Inter body)
   google_fonts: ^6.2.1
   qr_flutter: ^4.1.0

@@ -10,6 +10,8 @@ import '../../../../core/networking/api_exception.dart';
 import '../../../../core/theme/app_color_tokens.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_bottom_sheet.dart';
+import '../../../../shared/widgets/app_card.dart';
+import '../../../../shared/widgets/app_list_row.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/member_avatar.dart';
 import '../../../../shared/widgets/primary_button.dart';
@@ -236,78 +238,64 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
                     itemBuilder: (context, index) {
                       final member = members[index];
                       final color = AppColors.memberColor(index);
-                      return Card(
-                        child: InkWell(
-                          onTap: () => setState(() => _selected = member),
-                          borderRadius: BorderRadius.circular(16),
-                          child: Padding(
-                            padding: const EdgeInsets.all(14),
-                            child: Row(
-                              children: [
-                                Stack(
-                                  clipBehavior: Clip.none,
-                                  children: [
-                                    MemberAvatar(
-                                      name: member.name,
-                                      colorIndex: index,
-                                      avatarUrl: member.avatarUrl,
-                                      size: 52,
-                                    ),
-                                    Positioned(
-                                      right: 0,
-                                      bottom: 0,
-                                      child: Container(
-                                        width: 12,
-                                        height: 12,
-                                        decoration: BoxDecoration(
-                                          color: color,
-                                          shape: BoxShape.circle,
-                                          border:
-                                              Border.all(color: Colors.white, width: 2),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(member.name,
-                                          style: Theme.of(context).textTheme.titleMedium),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        member.role?.label ?? '',
-                                        style: Theme.of(context).textTheme.bodySmall,
-                                      ),
-                                      const SizedBox(height: 6),
-                                      StatusPill(
-                                        label: member.isPlaceholder
-                                            ? 'No account yet'
-                                            : 'Account connected',
-                                        background: member.isPlaceholder
-                                            ? context.colors.border
-                                            : context.colors.primary.withValues(alpha: 0.15),
-                                        foreground: member.isPlaceholder
-                                            ? context.colors.textSecondary
-                                            : context.colors.primary,
-                                      ),
-                                      if (member.birthDate != null) ...[
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          '🎂 ${_formatDate(member.birthDate!)}',
-                                          style: Theme.of(context).textTheme.bodySmall,
-                                        ),
-                                      ],
-                                    ],
+                      return AppCard(
+                        onTap: () => setState(() => _selected = member),
+                        padding: const EdgeInsets.all(14),
+                        child: AppListRow(
+                          leading: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              MemberAvatar(
+                                name: member.name,
+                                colorIndex: index,
+                                avatarUrl: member.avatarUrl,
+                                size: 52,
+                              ),
+                              Positioned(
+                                right: 0,
+                                bottom: 0,
+                                child: Container(
+                                  width: 12,
+                                  height: 12,
+                                  decoration: BoxDecoration(
+                                    color: color,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 2),
                                   ),
                                 ),
-                                Icon(LucideIcons.chevronRight,
-                                    color: context.colors.border),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
+                          title: member.name,
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                member.role?.label ?? '',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                              const SizedBox(height: 6),
+                              StatusPill(
+                                label: member.isPlaceholder
+                                    ? 'No account yet'
+                                    : 'Account connected',
+                                background: member.isPlaceholder
+                                    ? context.colors.border
+                                    : context.colors.primary.withValues(alpha: 0.15),
+                                foreground: member.isPlaceholder
+                                    ? context.colors.textSecondary
+                                    : context.colors.primary,
+                              ),
+                              if (member.birthDate != null) ...[
+                                const SizedBox(height: 6),
+                                Text(
+                                  '🎂 ${_formatDate(member.birthDate!)}',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ],
+                            ],
+                          ),
+                          trailing: Icon(LucideIcons.chevronRight, color: context.colors.border),
                         ),
                       );
                     },

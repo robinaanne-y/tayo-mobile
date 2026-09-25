@@ -8,6 +8,7 @@ import '../../../../core/theme/app_color_tokens.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_bottom_sheet.dart';
 import '../../../../shared/widgets/app_card.dart';
+import '../../../../shared/widgets/app_list_row.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/member_avatar.dart';
 import '../../../../shared/widgets/primary_button.dart';
@@ -934,39 +935,27 @@ class _HouseholdRow extends StatelessWidget {
             color: selected ? context.colors.primary.withValues(alpha: 0.4) : context.colors.border,
           ),
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Text(emoji, style: const TextStyle(fontSize: 20)),
+        child: AppListRow(
+          leading: Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(14),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(household.name, style: Theme.of(context).textTheme.titleMedium),
-                  if (count != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      '$count ${count == 1 ? 'member' : 'members'}',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            if (selected)
-              Icon(LucideIcons.checkCircle, color: context.colors.primary)
-            else
-              const SizedBox(width: 24, height: 24),
-          ],
+            child: Text(emoji, style: const TextStyle(fontSize: 20)),
+          ),
+          title: household.name,
+          subtitle: count != null
+              ? Text(
+                  '$count ${count == 1 ? 'member' : 'members'}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                )
+              : null,
+          trailing: selected
+              ? Icon(LucideIcons.checkCircle, color: context.colors.primary)
+              : const SizedBox(width: 24, height: 24),
         ),
       ),
     );

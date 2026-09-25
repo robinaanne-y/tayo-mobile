@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/networking/api_exception.dart';
 import '../../../../core/theme/app_color_tokens.dart';
 import '../../../../shared/widgets/app_bottom_sheet.dart';
+import '../../../../shared/widgets/app_card.dart';
+import '../../../../shared/widgets/app_list_row.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/member_avatar.dart';
 import '../../../../shared/widgets/primary_button.dart';
@@ -97,14 +99,14 @@ class _InviteMemberScreenState extends ConsumerState<InviteMemberScreen> {
                 padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
                 children: [
                   for (var i = 0; i < _added.length; i++) ...[
-                    Card(
-                      child: ListTile(
+                    AppCard(
+                      child: AppListRow(
                         leading: MemberAvatar(
                           name: _added[i].name,
                           colorIndex: i,
                           avatarUrl: _added[i].avatarUrl,
                         ),
-                        title: Text(_added[i].name),
+                        title: _added[i].name,
                         subtitle: Text(_added[i].role?.label ?? ''),
                       ),
                     ),

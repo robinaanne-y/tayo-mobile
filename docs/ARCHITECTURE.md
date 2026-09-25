@@ -1079,6 +1079,18 @@ Flutter widgets should primarily handle presentation and user interaction.
 > to its closest Lucide equivalent (e.g. `home`, `checkCircle`,
 > `shoppingBag`) — sizes and colors were left untouched, only the glyph
 > family changed.
+>
+> The handoff's component-library section also names Card/Chip/List-row
+> variants; rather than build out every named variant speculatively, only
+> the ones with real, currently-duplicated usage were extracted:
+> `AppListRow` (`shared/widgets/app_list_row.dart`) is the shared
+> leading+title+subtitle+trailing anatomy behind the Family member row,
+> the household-switcher row, and the invite-members preview row — wrap
+> it in `AppCard` for a card-style row, or in a custom container (like the
+> switcher row's selected-state background) for anything else. Buttons
+> and chips had no comparable duplication to justify new components —
+> `PrimaryButton`/`StatusPill` already cover the one real Button/Chip
+> pattern each.
 
 ---
 

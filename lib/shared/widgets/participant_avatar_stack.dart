@@ -25,17 +25,25 @@ class ParticipantAvatarStack extends StatelessWidget {
   final double size;
   final int maxShown;
 
+  static const double _ringPadding = 2;
+
   @override
   Widget build(BuildContext context) {
     final shown = participants.take(maxShown).toList();
     final overflow = participants.length - shown.length;
-    final overlap = size * 0.65;
+    // The ring adds padding around each avatar, so the actual circle
+    // Positioned in the Stack is larger than `size` — sizing the SizedBox
+    // off the bare avatar size left the last ring's edge outside the
+    // Stack's bounds, where the default hardEdge clip cut it off.
+    final ringSize = size + _ringPadding * 2;
+    final overlap = ringSize * 0.65;
     final slotCount = shown.length + (overflow > 0 ? 1 : 0);
 
     return SizedBox(
-      height: size,
-      width: size + (slotCount - 1) * overlap,
+      height: ringSize,
+      width: ringSize + (slotCount - 1) * overlap,
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
           for (final entry in shown.asMap().entries)
             Positioned(
@@ -80,7 +88,7 @@ class ParticipantAvatarStack extends StatelessWidget {
 
   Widget _ring(BuildContext context, Widget child) {
     return Container(
-      padding: const EdgeInsets.all(2),
+      padding: const EdgeInsets.all(_ringPadding),
       decoration: BoxDecoration(color: context.colors.surface, shape: BoxShape.circle),
       child: child,
     );

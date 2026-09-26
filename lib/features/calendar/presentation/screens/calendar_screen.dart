@@ -21,6 +21,16 @@ import '../providers/event_providers.dart';
 
 enum _CalendarViewMode { month, week, day }
 
+/// The member an event is displayed as belonging to, for color-coding and
+/// labeling — the first tagged participant when there is one, since the
+/// event is "about" who it's for, not who happened to create it; falls
+/// back to the creator when nobody's been tagged.
+int _primaryMemberId(Event event) =>
+    event.participants.isNotEmpty ? event.participants.first.id : event.creatorMemberId;
+
+String _primaryMemberName(Event event) =>
+    event.participants.isNotEmpty ? event.participants.first.name : event.creatorName;
+
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
 
@@ -147,7 +157,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                         height: 5,
                                         margin: const EdgeInsets.symmetric(horizontal: 1),
                                         decoration: BoxDecoration(
-                                          color: colorForMember[event.creatorMemberId] ??
+                                          color: colorForMember[_primaryMemberId(event)] ??
                                               context.colors.border,
                                           shape: BoxShape.circle,
                                         ),
@@ -377,7 +387,7 @@ class _WeekStrip extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: isSelected
                                     ? context.colors.primaryForeground
-                                    : (colorForMember[event.creatorMemberId] ?? context.colors.border),
+                                    : (colorForMember[_primaryMemberId(event)] ?? context.colors.border),
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -456,7 +466,7 @@ class _EventListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ownerColor = colorForMember[event.creatorMemberId] ?? context.colors.border;
+    final ownerColor = colorForMember[_primaryMemberId(event)] ?? context.colors.border;
 
     return InkWell(
       onTap: onTap,
@@ -479,7 +489,7 @@ class _EventListTile extends StatelessWidget {
           ),
           title: event.title,
           subtitle: Text(
-            '${DateFormat.jm().format(event.startAt)} · ${event.creatorName}'
+            '${DateFormat.jm().format(event.startAt)} · ${_primaryMemberName(event)}'
             '${event.visibility == EventVisibility.private ? ' · Private' : ''}',
             style: Theme.of(context).textTheme.labelMedium,
           ),

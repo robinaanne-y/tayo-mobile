@@ -143,7 +143,13 @@ class HomeScreen extends ConsumerWidget {
                     tooltip: 'Notifications',
                     onPressed: null,
                   ),
-                  Flexible(
+                  // A fixed max width (not Flexible/Expanded) so this pill
+                  // doesn't compete for flex space with the greeting column
+                  // above — two equal-flex siblings would each get half the
+                  // remaining row width, leaving the pill's unused half as a
+                  // visible gap instead of sitting flush at the row's end.
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 140),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(999),
                       onTap: () async {

@@ -9,6 +9,29 @@ enum EventVisibility {
   }
 }
 
+/// A household member tagged as involved in an event — a denormalized
+/// slice of `Member`, not the full domain model, matching how `creatorName`
+/// is already denormalized onto [Event] rather than nesting a full Member.
+class EventParticipant {
+  const EventParticipant({
+    required this.id,
+    required this.name,
+    this.avatarUrl,
+  });
+
+  final int id;
+  final String name;
+  final String? avatarUrl;
+
+  factory EventParticipant.fromJson(Map<String, dynamic> json) {
+    return EventParticipant(
+      id: json['id'] as int,
+      name: json['name'] as String,
+      avatarUrl: json['avatar_url'] as String?,
+    );
+  }
+}
+
 class Event {
   const Event({
     required this.id,
@@ -20,6 +43,7 @@ class Event {
     required this.startAt,
     required this.endAt,
     required this.visibility,
+    required this.participants,
   });
 
   final int id;
@@ -31,6 +55,7 @@ class Event {
   final DateTime startAt;
   final DateTime endAt;
   final EventVisibility visibility;
+  final List<EventParticipant> participants;
 
   factory Event.fromJson(Map<String, dynamic> json) {
     return Event(
@@ -43,6 +68,9 @@ class Event {
       startAt: DateTime.parse(json['start_at'] as String).toLocal(),
       endAt: DateTime.parse(json['end_at'] as String).toLocal(),
       visibility: EventVisibility.fromValue(json['visibility'] as String),
+      participants: (json['participants'] as List<dynamic>? ?? [])
+          .map((p) => EventParticipant.fromJson(p as Map<String, dynamic>))
+          .toList(),
     );
   }
 }

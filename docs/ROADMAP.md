@@ -309,6 +309,9 @@ sections are already in place.
 - [x] Home's "Today's Schedule" wired to real data (Phase 2 leftover,
       built together with this slice since it's a read-through of the
       same `events` endpoint)
+- [x] Participants — tag which household members are involved in an
+      event, via a tappable-avatar picker in the add/edit sheet;
+      displayed as an overlapping avatar stack on each event card
 
 ## Deferred to a later increment
 
@@ -317,7 +320,6 @@ sections are already in place.
       `all_member_households`)
 - [ ] Member filtering
 - [ ] Location
-- [ ] Participants
 
 ## Visibility Options
 
@@ -335,9 +337,10 @@ Deferred (API roadmap has the schema-extensibility notes):
 
 Partially met: a family can use the app as its own household's shared
 calendar (create, edit, delete events; private vs. shared visibility;
-Month/Week/Day views; color-coded by who owns each event). A member
-seeing the right subset of events across *multiple* households, and
-everything in "Deferred" above, remains for a later pass.
+Month/Week/Day views; color-coded by who owns each event; tag which
+members are involved). A member seeing the right subset of events across
+*multiple* households, and everything in "Deferred" above, remains for a
+later pass.
 
 ---
 

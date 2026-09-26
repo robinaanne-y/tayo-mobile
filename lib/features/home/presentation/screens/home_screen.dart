@@ -12,6 +12,7 @@ import '../../../../shared/widgets/app_card.dart';
 import '../../../../shared/widgets/app_list_row.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/member_avatar.dart';
+import '../../../../shared/widgets/participant_avatar_stack.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../../shared/screens/coming_soon_screen.dart';
 import '../../../announcements/domain/announcement.dart';
@@ -25,6 +26,7 @@ import '../../../family_notes/presentation/family_note_providers.dart';
 import '../../../households/domain/household.dart';
 import '../../../households/presentation/household_visuals.dart';
 import '../../../households/presentation/providers/household_providers.dart';
+import '../../../members/domain/member.dart';
 import '../../../members/presentation/providers/member_providers.dart';
 
 /// Base hues for note cards — a light tint is used as the background, a
@@ -382,6 +384,10 @@ class _TodaysScheduleSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final eventsAsync = ref.watch(currentHouseholdTodaysEventsProvider);
+    final members = ref.watch(currentHouseholdMembersProvider).valueOrNull ?? const <Member>[];
+    final colorForMember = {
+      for (final entry in members.asMap().entries) entry.value.id: AppColors.memberColor(entry.key),
+    };
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -412,7 +418,7 @@ class _TodaysScheduleSection extends ConsumerWidget {
                 children: [
                   for (final entry in events.asMap().entries) ...[
                     if (entry.key > 0) const Divider(height: 1),
-                    _TodayEventTile(event: entry.value),
+                    _TodayEventTile(event: entry.value, colorForMember: colorForMember),
                   ],
                 ],
               ),
@@ -434,9 +440,10 @@ class _TodaysScheduleSection extends ConsumerWidget {
 }
 
 class _TodayEventTile extends StatelessWidget {
-  const _TodayEventTile({required this.event});
+  const _TodayEventTile({required this.event, required this.colorForMember});
 
   final Event event;
+  final Map<int, Color> colorForMember;
 
   @override
   Widget build(BuildContext context) {
@@ -461,6 +468,14 @@ class _TodayEventTile extends StatelessWidget {
           if (event.visibility == EventVisibility.private) ...[
             const SizedBox(width: 8),
             Icon(LucideIcons.lock, size: 14, color: context.colors.textSecondary),
+          ],
+          if (event.participants.isNotEmpty) ...[
+            const SizedBox(width: 8),
+            ParticipantAvatarStack(
+              participants: event.participants,
+              colorForMember: colorForMember,
+              size: 18,
+            ),
           ],
         ],
       ),

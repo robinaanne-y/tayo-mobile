@@ -29,6 +29,7 @@ class EventRepository {
     required DateTime startAt,
     required DateTime endAt,
     required EventVisibility visibility,
+    List<int> participantMemberIds = const [],
   }) async {
     final response = await _apiClient.post(
       '/households/$householdId/events',
@@ -38,6 +39,7 @@ class EventRepository {
         'start_at': startAt.toUtc().toIso8601String(),
         'end_at': endAt.toUtc().toIso8601String(),
         'visibility': visibility.value,
+        'participant_member_ids': participantMemberIds,
       },
     );
     return Event.fromJson(
@@ -53,6 +55,7 @@ class EventRepository {
     required DateTime startAt,
     required DateTime endAt,
     required EventVisibility visibility,
+    List<int> participantMemberIds = const [],
   }) async {
     final response = await _apiClient.put(
       '/households/$householdId/events/$eventId',
@@ -62,6 +65,7 @@ class EventRepository {
         'start_at': startAt.toUtc().toIso8601String(),
         'end_at': endAt.toUtc().toIso8601String(),
         'visibility': visibility.value,
+        'participant_member_ids': participantMemberIds,
       },
     );
     return Event.fromJson(

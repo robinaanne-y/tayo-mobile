@@ -11,6 +11,8 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_bottom_sheet.dart';
 import '../../../../shared/widgets/app_list_row.dart';
 import '../../../../shared/widgets/app_text_field.dart';
+import '../../../../shared/widgets/member_avatar.dart';
+import '../../../../shared/widgets/participant_avatar_stack.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../households/presentation/providers/household_providers.dart';
 import '../../../members/domain/member.dart';
@@ -19,6 +21,30 @@ import '../../domain/event.dart';
 import '../providers/event_providers.dart';
 
 enum _CalendarViewMode { month, week, day }
+
+/// The member an event is displayed as belonging to, for color-coding and
+/// labeling — the first tagged participant when there is one, since the
+/// event is "about" who it's for, not who happened to create it; falls
+/// back to the creator when nobody's been tagged.
+int _primaryMemberId(Event event) =>
+    event.participants.isNotEmpty ? event.participants.first.id : event.creatorMemberId;
+
+/// Describes who an event is for: the creator when nobody's tagged, "All"
+/// when every household member is a participant, every name when there are
+/// only a couple, or the first two plus a "+N more" count once the list
+/// gets long enough that spelling it out would crowd the card.
+String _participantsLabel(Event event, int householdMemberCount) {
+  final participants = event.participants;
+  if (participants.isEmpty) return event.creatorName;
+  if (householdMemberCount > 0 && participants.length == householdMemberCount) {
+    return 'All';
+  }
+  if (participants.length <= 3) {
+    return participants.map((p) => p.name).join(', ');
+  }
+  final shown = participants.take(2).map((p) => p.name).join(', ');
+  return '$shown +${participants.length - 2} more';
+}
 
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
@@ -127,6 +153,20 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                           focusedDay: _focusedDay,
                           calendarFormat: CalendarFormat.month,
                           headerVisible: false,
+                          // The package's default daysOfWeekHeight (16px)
+                          // assumes its own small default text style; ours
+                          // (inherited from the ambient TextTheme) is taller
+                          // and was getting clipped, so both are set
+                          // explicitly together.
+                          daysOfWeekHeight: 24,
+                          daysOfWeekStyle: DaysOfWeekStyle(
+                            weekdayStyle: Theme.of(context).textTheme.labelMedium!.copyWith(
+                                  color: context.colors.textSecondary,
+                                ),
+                            weekendStyle: Theme.of(context).textTheme.labelMedium!.copyWith(
+                                  color: context.colors.textSecondary,
+                                ),
+                          ),
                           selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
                           eventLoader: (day) {
                             final key = DateTime(day.year, day.month, day.day);
@@ -146,7 +186,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                         height: 5,
                                         margin: const EdgeInsets.symmetric(horizontal: 1),
                                         decoration: BoxDecoration(
-                                          color: colorForMember[event.creatorMemberId] ??
+                                          color: colorForMember[_primaryMemberId(event)] ??
                                               context.colors.border,
                                           shape: BoxShape.circle,
                                         ),
@@ -199,8 +239,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                   final event = selectedEvents[index];
                                   return _EventListTile(
                                     event: event,
-                                    ownerColor:
-                                        colorForMember[event.creatorMemberId] ?? context.colors.border,
+                                    colorForMember: colorForMember,
+                                    householdMemberCount: members.length,
                                     onTap: () => _openAddEditSheet(existing: event),
                                   );
                                 },
@@ -377,7 +417,7 @@ class _WeekStrip extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: isSelected
                                     ? context.colors.primaryForeground
-                                    : (colorForMember[event.creatorMemberId] ?? context.colors.border),
+                                    : (colorForMember[_primaryMemberId(event)] ?? context.colors.border),
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -446,16 +486,20 @@ class _DateSubHeader extends StatelessWidget {
 class _EventListTile extends StatelessWidget {
   const _EventListTile({
     required this.event,
-    required this.ownerColor,
+    required this.colorForMember,
+    required this.householdMemberCount,
     required this.onTap,
   });
 
   final Event event;
-  final Color ownerColor;
+  final Map<int, Color> colorForMember;
+  final int householdMemberCount;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final ownerColor = colorForMember[_primaryMemberId(event)] ?? context.colors.border;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
@@ -477,15 +521,21 @@ class _EventListTile extends StatelessWidget {
           ),
           title: event.title,
           subtitle: Text(
-            '${DateFormat.jm().format(event.startAt)} · ${event.creatorName}'
+            '${DateFormat.jm().format(event.startAt)} · '
+            '${_participantsLabel(event, householdMemberCount)}'
             '${event.visibility == EventVisibility.private ? ' · Private' : ''}',
             style: Theme.of(context).textTheme.labelMedium,
           ),
-          trailing: Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(color: ownerColor, shape: BoxShape.circle),
-          ),
+          trailing: event.participants.isEmpty
+              ? Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(color: ownerColor, shape: BoxShape.circle),
+                )
+              : ParticipantAvatarStack(
+                  participants: event.participants,
+                  colorForMember: colorForMember,
+                ),
         ),
       ),
     );
@@ -513,6 +563,7 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
   late DateTime _startAt;
   late DateTime _endAt;
   late EventVisibility _visibility;
+  late Set<int> _selectedParticipantIds;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -520,6 +571,7 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
   void initState() {
     super.initState();
     final existing = widget.existing;
+    _selectedParticipantIds = existing?.participants.map((p) => p.id).toSet() ?? {};
     if (existing != null) {
       _titleController.text = existing.title;
       _descriptionController.text = existing.description ?? '';
@@ -604,6 +656,7 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
           startAt: _startAt,
           endAt: _endAt,
           visibility: _visibility,
+          participantMemberIds: _selectedParticipantIds.toList(),
         );
       } else {
         await repository.create(
@@ -613,6 +666,7 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
           startAt: _startAt,
           endAt: _endAt,
           visibility: _visibility,
+          participantMemberIds: _selectedParticipantIds.toList(),
         );
       }
       if (mounted) Navigator.of(context).pop(true);
@@ -649,6 +703,7 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
   Widget build(BuildContext context) {
     final isEditing = widget.existing != null;
     final dateFormat = DateFormat('MMM d, y  •  h:mm a');
+    final members = ref.watch(currentHouseholdMembersProvider).valueOrNull ?? const <Member>[];
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -698,6 +753,28 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
           selected: {_visibility},
           onSelectionChanged: (selection) => setState(() => _visibility = selection.first),
         ),
+        if (members.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Text('Participants', style: Theme.of(context).textTheme.labelMedium),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 16,
+            runSpacing: 12,
+            children: [
+              for (final entry in members.asMap().entries)
+                _ParticipantChip(
+                  member: entry.value,
+                  colorIndex: entry.key,
+                  selected: _selectedParticipantIds.contains(entry.value.id),
+                  onTap: () => setState(() {
+                    if (!_selectedParticipantIds.remove(entry.value.id)) {
+                      _selectedParticipantIds.add(entry.value.id);
+                    }
+                  }),
+                ),
+            ],
+          ),
+        ],
         const SizedBox(height: 16),
         PrimaryButton(
           label: isEditing ? 'Save changes' : 'Add event',
@@ -716,6 +793,68 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
           ),
         ],
       ],
+    );
+  }
+}
+
+class _ParticipantChip extends StatelessWidget {
+  const _ParticipantChip({
+    required this.member,
+    required this.colorIndex,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Member member;
+  final int colorIndex;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Opacity(
+            opacity: selected ? 1 : 0.4,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                MemberAvatar(
+                  name: member.name,
+                  colorIndex: colorIndex,
+                  avatarUrl: member.avatarUrl,
+                  size: 48,
+                ),
+                if (selected)
+                  Positioned(
+                    right: -2,
+                    bottom: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(1),
+                      decoration: BoxDecoration(
+                        color: context.colors.surface,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        LucideIcons.checkCircle,
+                        size: 16,
+                        color: context.colors.primary,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            member.name.split(' ').first,
+            style: Theme.of(context).textTheme.labelMedium,
+          ),
+        ],
+      ),
     );
   }
 }

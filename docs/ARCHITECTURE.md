@@ -537,12 +537,26 @@ The calendar should query events through authorization-aware services rather tha
 > position in `currentHouseholdMembersProvider`'s list — surfaced as a
 > legend row in the Calendar header and as each event card's left border.
 >
-> Recurring events, cross-household visibility, participants, and
-> location are still not built — see `ROADMAP.md` → Phase 3 for the
-> deferred list, and `tayo-api`'s `ARCHITECTURE.md`/`ROADMAP.md` for the
-> schema-extensibility notes (visibility is a plain string column
-> specifically so the remaining levels are a validation change later, not
-> a migration).
+> **Participants**: `Event.participants` (`List<EventParticipant>`, a
+> minimal `{id, name, avatarUrl}` shape denormalized the same way
+> `creatorName` already is — not the full `Member` domain model) is
+> tagged from the add/edit sheet's "Participants" row of tappable
+> `MemberAvatar`s (dimmed when unselected, a checkmark badge overlaid
+> when selected — the household switcher's `checkCircle` treatment
+> reused here). The sheet watches `currentHouseholdMembersProvider`
+> directly rather than threading it down from `CalendarScreen`, since
+> it's the same cached provider instance — no extra network call.
+> `EventRepository.create`/`update` send the selection as
+> `participant_member_ids`, replacing the full list each save (not an
+> add/remove diff) matching the API's `sync()` semantics. Selected
+> participants also render as a small overlapping avatar stack on each
+> event card, replacing the single owner-color dot once an event has any.
+>
+> Recurring events, cross-household visibility, and location are still
+> not built — see `ROADMAP.md` → Phase 3 for the deferred list, and
+> `tayo-api`'s `ARCHITECTURE.md`/`ROADMAP.md` for the schema-extensibility
+> notes (visibility is a plain string column specifically so the
+> remaining levels are a validation change later, not a migration).
 
 ---
 

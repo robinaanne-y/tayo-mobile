@@ -114,17 +114,25 @@ class HomeScreen extends ConsumerWidget {
               color: context.colors.surface,
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(_dateLabel, style: Theme.of(context).textTheme.bodySmall),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(_dateLabel, style: Theme.of(context).textTheme.bodySmall),
+                        ),
                         const SizedBox(height: 2),
-                        Text(
-                          '${greeting.text} ${greeting.emoji}',
-                          style: Theme.of(context).textTheme.headlineSmall,
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '${greeting.text} ${greeting.emoji}',
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
                         ),
                       ],
                     ),
@@ -135,7 +143,13 @@ class HomeScreen extends ConsumerWidget {
                     tooltip: 'Notifications',
                     onPressed: null,
                   ),
-                  Flexible(
+                  // A fixed max width (not Flexible/Expanded) so this pill
+                  // doesn't compete for flex space with the greeting column
+                  // above — two equal-flex siblings would each get half the
+                  // remaining row width, leaving the pill's unused half as a
+                  // visible gap instead of sitting flush at the row's end.
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 140),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(999),
                       onTap: () async {

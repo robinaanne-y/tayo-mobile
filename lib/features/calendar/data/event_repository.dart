@@ -26,6 +26,7 @@ class EventRepository {
     required int householdId,
     required String title,
     String? description,
+    String? location,
     required DateTime startAt,
     required DateTime endAt,
     required EventVisibility visibility,
@@ -36,6 +37,7 @@ class EventRepository {
       data: {
         'title': title,
         'description': description,
+        'location': location,
         'start_at': startAt.toUtc().toIso8601String(),
         'end_at': endAt.toUtc().toIso8601String(),
         'visibility': visibility.value,
@@ -52,6 +54,7 @@ class EventRepository {
     required int eventId,
     required String title,
     String? description,
+    String? location,
     required DateTime startAt,
     required DateTime endAt,
     required EventVisibility visibility,
@@ -62,6 +65,7 @@ class EventRepository {
       data: {
         'title': title,
         'description': description,
+        'location': location,
         'start_at': startAt.toUtc().toIso8601String(),
         'end_at': endAt.toUtc().toIso8601String(),
         'visibility': visibility.value,

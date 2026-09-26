@@ -46,6 +46,16 @@ String _participantsLabel(Event event, int householdMemberCount) {
   return '$shown +${participants.length - 2} more';
 }
 
+/// Whether [event] should be visible under the Calendar screen's member
+/// filter — an empty [filterMemberIds] means "no filter, show everything".
+/// An event matches when any of its tagged participants is in the filter,
+/// or (for an event nobody's been tagged on) when its creator is.
+bool _eventMatchesFilter(Event event, Set<int> filterMemberIds) {
+  if (filterMemberIds.isEmpty) return true;
+  if (event.participants.isEmpty) return filterMemberIds.contains(event.creatorMemberId);
+  return event.participants.any((p) => filterMemberIds.contains(p.id));
+}
+
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
 
@@ -57,6 +67,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime _selectedDay = DateTime.now();
   _CalendarViewMode _viewMode = _CalendarViewMode.month;
+  final Set<int> _filterMemberIds = {};
+
+  void _toggleMemberFilter(int memberId) {
+    setState(() {
+      if (!_filterMemberIds.remove(memberId)) {
+        _filterMemberIds.add(memberId);
+      }
+    });
+  }
 
   ({DateTime start, DateTime end}) get _visibleRange {
     switch (_viewMode) {
@@ -131,12 +150,16 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               onViewModeChanged: (mode) => setState(() => _viewMode = mode),
               members: members,
               colorForMember: colorForMember,
+              filterMemberIds: _filterMemberIds,
+              onMemberToggled: _toggleMemberFilter,
             ),
             Expanded(
               child: eventsAsync.when(
                 data: (events) {
+                  final visibleEvents =
+                      events.where((e) => _eventMatchesFilter(e, _filterMemberIds)).toList();
                   final eventsByDay = <DateTime, List<Event>>{};
-                  for (final event in events) {
+                  for (final event in visibleEvents) {
                     final day = DateTime(event.startAt.year, event.startAt.month, event.startAt.day);
                     eventsByDay.putIfAbsent(day, () => []).add(event);
                   }
@@ -272,6 +295,8 @@ class _CalendarHeader extends StatelessWidget {
     required this.onViewModeChanged,
     required this.members,
     required this.colorForMember,
+    required this.filterMemberIds,
+    required this.onMemberToggled,
   });
 
   final String title;
@@ -279,6 +304,8 @@ class _CalendarHeader extends StatelessWidget {
   final ValueChanged<_CalendarViewMode> onViewModeChanged;
   final List<Member> members;
   final Map<int, Color> colorForMember;
+  final Set<int> filterMemberIds;
+  final ValueChanged<int> onMemberToggled;
 
   @override
   Widget build(BuildContext context) {
@@ -318,29 +345,72 @@ class _CalendarHeader extends StatelessWidget {
           if (members.isNotEmpty) ...[
             const SizedBox(height: 12),
             Wrap(
-              spacing: 16,
+              spacing: 8,
               runSpacing: 8,
               children: [
                 for (final member in members)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: colorForMember[member.id],
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(member.name, style: Theme.of(context).textTheme.labelMedium),
-                    ],
+                  _MemberFilterChip(
+                    member: member,
+                    color: colorForMember[member.id] ?? context.colors.border,
+                    isFilterActive: filterMemberIds.isNotEmpty,
+                    isSelected: filterMemberIds.contains(member.id),
+                    onTap: () => onMemberToggled(member.id),
                   ),
               ],
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// A tappable legend entry that doubles as a member filter: tapping it
+/// toggles whether the Calendar screen narrows down to just that member's
+/// events. Undimmed and unhighlighted when no filter is active (today's
+/// plain legend look); once any member is selected, the rest dim so the
+/// active filter is obvious.
+class _MemberFilterChip extends StatelessWidget {
+  const _MemberFilterChip({
+    required this.member,
+    required this.color,
+    required this.isFilterActive,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final Member member;
+  final Color color;
+  final bool isFilterActive;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: !isFilterActive || isSelected ? 1 : 0.4,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withValues(alpha: 0.12) : null,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 6),
+              Text(member.name, style: Theme.of(context).textTheme.labelMedium),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -520,11 +590,34 @@ class _EventListTile extends StatelessWidget {
             ),
           ),
           title: event.title,
-          subtitle: Text(
-            '${DateFormat.jm().format(event.startAt)} · '
-            '${_participantsLabel(event, householdMemberCount)}'
-            '${event.visibility == EventVisibility.private ? ' · Private' : ''}',
-            style: Theme.of(context).textTheme.labelMedium,
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '${DateFormat.jm().format(event.startAt)} · '
+                '${_participantsLabel(event, householdMemberCount)}'
+                '${event.visibility == EventVisibility.private ? ' · Private' : ''}',
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+              if (event.location != null && event.location!.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(LucideIcons.mapPin, size: 12, color: context.colors.textSecondary),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        event.location!,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelMedium,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
           ),
           trailing: event.participants.isEmpty
               ? Container(
@@ -560,6 +653,7 @@ class _AddEditEventSheet extends ConsumerStatefulWidget {
 class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _locationController = TextEditingController();
   late DateTime _startAt;
   late DateTime _endAt;
   late EventVisibility _visibility;
@@ -575,6 +669,7 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
     if (existing != null) {
       _titleController.text = existing.title;
       _descriptionController.text = existing.description ?? '';
+      _locationController.text = existing.location ?? '';
       _startAt = existing.startAt;
       _endAt = existing.endAt;
       _visibility = existing.visibility;
@@ -595,6 +690,7 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _locationController.dispose();
     super.dispose();
   }
 
@@ -643,6 +739,7 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
     });
 
     final description = _descriptionController.text.trim();
+    final location = _locationController.text.trim();
 
     try {
       final repository = ref.read(eventRepositoryProvider);
@@ -653,6 +750,7 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
           eventId: existing.id,
           title: title,
           description: description.isEmpty ? null : description,
+          location: location.isEmpty ? null : location,
           startAt: _startAt,
           endAt: _endAt,
           visibility: _visibility,
@@ -663,6 +761,7 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
           householdId: widget.householdId,
           title: title,
           description: description.isEmpty ? null : description,
+          location: location.isEmpty ? null : location,
           startAt: _startAt,
           endAt: _endAt,
           visibility: _visibility,
@@ -718,6 +817,8 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
         AppTextField(label: 'Title', controller: _titleController),
         const SizedBox(height: 16),
         AppTextField(label: 'Description (optional)', controller: _descriptionController),
+        const SizedBox(height: 16),
+        AppTextField(label: 'Location (optional)', controller: _locationController),
         const SizedBox(height: 16),
         InkWell(
           borderRadius: BorderRadius.circular(12),

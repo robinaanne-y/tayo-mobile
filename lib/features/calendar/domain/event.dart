@@ -40,6 +40,7 @@ class Event {
     required this.creatorName,
     required this.title,
     required this.description,
+    required this.location,
     required this.startAt,
     required this.endAt,
     required this.visibility,
@@ -52,6 +53,7 @@ class Event {
   final String creatorName;
   final String title;
   final String? description;
+  final String? location;
   final DateTime startAt;
   final DateTime endAt;
   final EventVisibility visibility;
@@ -65,6 +67,7 @@ class Event {
       creatorName: json['creator_name'] as String? ?? '',
       title: json['title'] as String,
       description: json['description'] as String?,
+      location: json['location'] as String?,
       startAt: DateTime.parse(json['start_at'] as String).toLocal(),
       endAt: DateTime.parse(json['end_at'] as String).toLocal(),
       visibility: EventVisibility.fromValue(json['visibility'] as String),

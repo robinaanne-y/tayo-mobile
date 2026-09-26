@@ -312,14 +312,18 @@ sections are already in place.
 - [x] Participants — tag which household members are involved in an
       event, via a tappable-avatar picker in the add/edit sheet;
       displayed as an overlapping avatar stack on each event card
+- [x] Location — a free-text optional field, shown on the event card
+      with a map-pin icon when set
+- [x] Member filtering — the Calendar header's legend row doubles as a
+      filter: tap a member to narrow the calendar/day list to their
+      events, tap again (or select more) to combine/clear. Entirely
+      client-side, no new endpoint needed
 
 ## Deferred to a later increment
 
 - [ ] Recurring events
 - [ ] Multiple-household visibility (`selected_households`/
       `all_member_households`)
-- [ ] Member filtering
-- [ ] Location
 
 ## Visibility Options
 
@@ -338,9 +342,9 @@ Deferred (API roadmap has the schema-extensibility notes):
 Partially met: a family can use the app as its own household's shared
 calendar (create, edit, delete events; private vs. shared visibility;
 Month/Week/Day views; color-coded by who owns each event; tag which
-members are involved). A member seeing the right subset of events across
-*multiple* households, and everything in "Deferred" above, remains for a
-later pass.
+members are involved and where; filter down to one or more members). A
+member seeing the right subset of events across *multiple* households,
+and everything in "Deferred" above, remains for a later pass.
 
 ---
 

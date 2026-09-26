@@ -552,11 +552,27 @@ The calendar should query events through authorization-aware services rather tha
 > participants also render as a small overlapping avatar stack on each
 > event card, replacing the single owner-color dot once an event has any.
 >
-> Recurring events, cross-household visibility, and location are still
-> not built — see `ROADMAP.md` → Phase 3 for the deferred list, and
-> `tayo-api`'s `ARCHITECTURE.md`/`ROADMAP.md` for the schema-extensibility
-> notes (visibility is a plain string column specifically so the
-> remaining levels are a validation change later, not a migration).
+> **Location**: a plain optional `AppTextField` in the add/edit sheet
+> (right after Description), round-tripped through `Event.location` and
+> shown on the event card as a `LucideIcons.mapPin` line under the time/
+> participants line, only when non-empty.
+>
+> **Member filtering**: entirely client-side — `_CalendarScreenState`
+> holds a `Set<int> _filterMemberIds` (empty means "show everything",
+> the same "empty set = no restriction" convention already used for
+> `_selectedParticipantIds` in the add/edit sheet). The header's legend
+> row doubles as the filter control: tapping a member toggles them in
+> the set, and `_eventMatchesFilter()` checks each event's participants
+> (or creator, when nobody's tagged) against it before building
+> `eventsByDay`. No new endpoint or query param — the `index` response
+> already carries every event's participants/creator, so this is a pure
+> view-layer filter over data already fetched for the visible range.
+>
+> Recurring events and cross-household visibility are still not built —
+> see `ROADMAP.md` → Phase 3 for the deferred list, and `tayo-api`'s
+> `ARCHITECTURE.md`/`ROADMAP.md` for the schema-extensibility notes
+> (visibility is a plain string column specifically so the remaining
+> levels are a validation change later, not a migration).
 
 ---
 

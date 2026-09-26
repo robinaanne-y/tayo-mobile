@@ -12,6 +12,7 @@ import '../../../../shared/widgets/app_bottom_sheet.dart';
 import '../../../../shared/widgets/app_list_row.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/member_avatar.dart';
+import '../../../../shared/widgets/participant_avatar_stack.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../households/presentation/providers/household_providers.dart';
 import '../../../members/domain/member.dart';
@@ -152,6 +153,20 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                           focusedDay: _focusedDay,
                           calendarFormat: CalendarFormat.month,
                           headerVisible: false,
+                          // The package's default daysOfWeekHeight (16px)
+                          // assumes its own small default text style; ours
+                          // (inherited from the ambient TextTheme) is taller
+                          // and was getting clipped, so both are set
+                          // explicitly together.
+                          daysOfWeekHeight: 24,
+                          daysOfWeekStyle: DaysOfWeekStyle(
+                            weekdayStyle: Theme.of(context).textTheme.labelMedium!.copyWith(
+                                  color: context.colors.textSecondary,
+                                ),
+                            weekendStyle: Theme.of(context).textTheme.labelMedium!.copyWith(
+                                  color: context.colors.textSecondary,
+                                ),
+                          ),
                           selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
                           eventLoader: (day) {
                             final key = DateTime(day.year, day.month, day.day);
@@ -517,24 +532,9 @@ class _EventListTile extends StatelessWidget {
                   height: 10,
                   decoration: BoxDecoration(color: ownerColor, shape: BoxShape.circle),
                 )
-              : SizedBox(
-                  height: 22,
-                  child: Stack(
-                    children: [
-                      for (final entry in event.participants.take(3).toList().asMap().entries)
-                        Padding(
-                          padding: EdgeInsets.only(left: entry.key * 14.0),
-                          child: MemberAvatar(
-                            name: entry.value.name,
-                            colorIndex: AppColors.memberPalette.indexOf(
-                              colorForMember[entry.value.id] ?? AppColors.memberPalette.first,
-                            ),
-                            avatarUrl: entry.value.avatarUrl,
-                            size: 22,
-                          ),
-                        ),
-                    ],
-                  ),
+              : ParticipantAvatarStack(
+                  participants: event.participants,
+                  colorForMember: colorForMember,
                 ),
         ),
       ),

@@ -51,6 +51,12 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
       _membersFuture = _loadMembers();
       _selected = null;
     });
+    // This screen keeps its own local member list rather than reading
+    // currentHouseholdMembersProvider, so other screens that do watch it
+    // (Calendar's participant picker, Home) need an explicit nudge or
+    // they'd keep showing the household's member list from before this
+    // change.
+    ref.invalidate(currentHouseholdMembersProvider);
   }
 
   void _onMemberUpdated(Member updated) {
@@ -58,6 +64,7 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
       _selected = updated;
       _membersFuture = _loadMembers();
     });
+    ref.invalidate(currentHouseholdMembersProvider);
   }
 
   Future<void> _openAddMemberSheet() async {

@@ -28,8 +28,22 @@ enum _CalendarViewMode { month, week, day }
 int _primaryMemberId(Event event) =>
     event.participants.isNotEmpty ? event.participants.first.id : event.creatorMemberId;
 
-String _primaryMemberName(Event event) =>
-    event.participants.isNotEmpty ? event.participants.first.name : event.creatorName;
+/// Describes who an event is for: the creator when nobody's tagged, "All"
+/// when every household member is a participant, every name when there are
+/// only a couple, or the first two plus a "+N more" count once the list
+/// gets long enough that spelling it out would crowd the card.
+String _participantsLabel(Event event, int householdMemberCount) {
+  final participants = event.participants;
+  if (participants.isEmpty) return event.creatorName;
+  if (householdMemberCount > 0 && participants.length == householdMemberCount) {
+    return 'All';
+  }
+  if (participants.length <= 3) {
+    return participants.map((p) => p.name).join(', ');
+  }
+  final shown = participants.take(2).map((p) => p.name).join(', ');
+  return '$shown +${participants.length - 2} more';
+}
 
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
@@ -211,6 +225,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                   return _EventListTile(
                                     event: event,
                                     colorForMember: colorForMember,
+                                    householdMemberCount: members.length,
                                     onTap: () => _openAddEditSheet(existing: event),
                                   );
                                 },
@@ -457,11 +472,13 @@ class _EventListTile extends StatelessWidget {
   const _EventListTile({
     required this.event,
     required this.colorForMember,
+    required this.householdMemberCount,
     required this.onTap,
   });
 
   final Event event;
   final Map<int, Color> colorForMember;
+  final int householdMemberCount;
   final VoidCallback onTap;
 
   @override
@@ -489,7 +506,8 @@ class _EventListTile extends StatelessWidget {
           ),
           title: event.title,
           subtitle: Text(
-            '${DateFormat.jm().format(event.startAt)} · ${_primaryMemberName(event)}'
+            '${DateFormat.jm().format(event.startAt)} · '
+            '${_participantsLabel(event, householdMemberCount)}'
             '${event.visibility == EventVisibility.private ? ' · Private' : ''}',
             style: Theme.of(context).textTheme.labelMedium,
           ),

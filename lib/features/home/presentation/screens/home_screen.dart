@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/networking/api_exception.dart';
 import '../../../../core/theme/app_color_tokens.dart';
@@ -17,6 +18,8 @@ import '../../../announcements/domain/announcement.dart';
 import '../../../announcements/presentation/announcement_providers.dart';
 import '../../../auth/presentation/providers/auth_controller.dart';
 import '../../../auth/presentation/screens/profile_screen.dart';
+import '../../../calendar/domain/event.dart';
+import '../../../calendar/presentation/providers/event_providers.dart';
 import '../../../family_notes/domain/family_note.dart';
 import '../../../family_notes/presentation/family_note_providers.dart';
 import '../../../households/domain/household.dart';
@@ -211,20 +214,7 @@ class HomeScreen extends ConsumerWidget {
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  _SectionHeaderRow(
-                    title: "Today's Schedule",
-                    actionLabel: 'See all',
-                    onAction: () => context.go('/calendar'),
-                  ),
-                  const SizedBox(height: 8),
-                  _EmptyStateCard(
-                    emoji: '📅',
-                    title: 'No events today',
-                    message: 'Your calendar is clear. Add an event for you or '
-                        'someone in the family.',
-                    buttonLabel: 'Add event',
-                    onPressed: () => context.go('/calendar'),
-                  ),
+                  const _TodaysScheduleSection(),
                   const SizedBox(height: 24),
                   Text('Needs Your Attention', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
@@ -375,6 +365,102 @@ class _EmptyStateCard extends StatelessWidget {
               ),
               child: Text(buttonLabel!, style: const TextStyle(fontWeight: FontWeight.w700)),
             ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Today's Schedule: real data, backed by
+/// `households/{household}/events` filtered to today. Browsing anything
+/// beyond today (or adding/editing an event) happens on the full Calendar
+/// screen — this section only surfaces what's happening today.
+class _TodaysScheduleSection extends ConsumerWidget {
+  const _TodaysScheduleSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final eventsAsync = ref.watch(currentHouseholdTodaysEventsProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SectionHeaderRow(
+          title: "Today's Schedule",
+          actionLabel: 'See all',
+          onAction: () => context.go('/calendar'),
+        ),
+        const SizedBox(height: 8),
+        eventsAsync.when(
+          data: (events) {
+            if (events.isEmpty) {
+              return _EmptyStateCard(
+                emoji: '📅',
+                title: 'No events today',
+                message: 'Your calendar is clear. Add an event for you or '
+                    'someone in the family.',
+                buttonLabel: 'Add event',
+                onPressed: () => context.go('/calendar'),
+              );
+            }
+
+            return AppCard(
+              padding: EdgeInsets.zero,
+              onTap: () => context.go('/calendar'),
+              child: Column(
+                children: [
+                  for (final entry in events.asMap().entries) ...[
+                    if (entry.key > 0) const Divider(height: 1),
+                    _TodayEventTile(event: entry.value),
+                  ],
+                ],
+              ),
+            );
+          },
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (error, stack) => _EmptyStateCard(
+            emoji: '📅',
+            title: "Couldn't load today's schedule",
+            message: 'Pull to refresh or try again shortly.',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TodayEventTile extends StatelessWidget {
+  const _TodayEventTile({required this.event});
+
+  final Event event;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 64,
+            child: Text(
+              DateFormat.jm().format(event.startAt),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              event.title,
+              style: Theme.of(context).textTheme.bodyMedium,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (event.visibility == EventVisibility.private) ...[
+            const SizedBox(width: 8),
+            Icon(LucideIcons.lock, size: 14, color: context.colors.textSecondary),
           ],
         ],
       ),

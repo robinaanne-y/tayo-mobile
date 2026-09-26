@@ -435,9 +435,13 @@ home
 
 Avoid storing a duplicate "Home Feed" copy of every event.
 
-> **Foundation note:** not implemented yet. The current `HomeScreen` in
-> Flutter is a static placeholder (see section 25) that only establishes
-> navigation — no `/api/v1/home` endpoint exists. This is Phase 2 work.
+> **Foundation note:** `HomeScreen` is real (see section 25), with each
+> section reading its own module's endpoint directly rather than through
+> a `GET /api/v1/home` aggregation endpoint, which still doesn't exist —
+> Family Notes, Announcements, and (as of Phase 3's core slice) `today's
+> events` are live; the rest of the sections remain honest empty states
+> until their phases land. See section 11 for what's implemented for
+> Calendar.
 
 ---
 
@@ -495,6 +499,50 @@ An event should contain information such as:
 - recurrence information
 
 The calendar should query events through authorization-aware services rather than exposing all household events directly.
+
+> **Foundation note — Phase 3 core slice:**
+>
+> `lib/features/calendar/` (new, `households/`-style full feature shape:
+> `data/event_repository.dart`, `domain/event.dart`,
+> `presentation/{providers/event_providers.dart, screens/calendar_screen.dart}`)
+> implements event CRUD against `households/{household}/events`, with two
+> new packages: `table_calendar` (the month-view grid on
+> `CalendarScreen`) and `intl` (time/date formatting — neither existed in
+> the project before). `EventVisibility` is `private`/`household` only
+> for now, matching the API's current schema; `ApiClient` gained a `put()`
+> method (it previously only had `get`/`post`/`patch`/`delete`) since
+> event updates use `PUT`.
+>
+> `currentHouseholdTodaysEventsProvider` (queries events for just today)
+> powers Home's `_TodaysScheduleSection`, replacing its former static
+> empty-state block — this also closes out Phase 2's "Today's Schedule"/
+> "Upcoming events" checklist items, since both were always meant to be a
+> read-through of Calendar data. Browsing anything beyond today happens
+> on the Calendar screen itself — deliberately not a second Home widget,
+> since there's no distinct mockup calling for one.
+>
+> `CalendarScreen` has Month/Week/Day view modes (a local
+> `_CalendarViewMode` enum), all three reading from
+> `currentHouseholdEventsInRangeProvider` — a `family` provider keyed by
+> an arbitrary `({DateTime start, DateTime end})` range record (Dart
+> records give it structural equality for free, so no wrapper class was
+> needed) rather than the month-only shape it started with. Month view
+> keeps `table_calendar`'s grid (with a custom `markerBuilder` painting
+> owner-colored dots instead of its default generic marker); Week is a
+> plain 7-cell `Row` (no second calendar package); Day is just the shared
+> date sub-header (with prev/next chevrons, since nothing else in that
+> mode lets you change the day) and the event list. Every event is
+> color-coded by its creator using the same `AppColors.memberColor(index)`
+> convention `family_screen.dart`/`MemberAvatar` already use — a member's
+> position in `currentHouseholdMembersProvider`'s list — surfaced as a
+> legend row in the Calendar header and as each event card's left border.
+>
+> Recurring events, cross-household visibility, participants, and
+> location are still not built — see `ROADMAP.md` → Phase 3 for the
+> deferred list, and `tayo-api`'s `ARCHITECTURE.md`/`ROADMAP.md` for the
+> schema-extensibility notes (visibility is a plain string column
+> specifically so the remaining levels are a validation change later, not
+> a migration).
 
 ---
 

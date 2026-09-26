@@ -11,6 +11,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_bottom_sheet.dart';
 import '../../../../shared/widgets/app_list_row.dart';
 import '../../../../shared/widgets/app_text_field.dart';
+import '../../../../shared/widgets/member_avatar.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../households/presentation/providers/household_providers.dart';
 import '../../../members/domain/member.dart';
@@ -199,8 +200,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                   final event = selectedEvents[index];
                                   return _EventListTile(
                                     event: event,
-                                    ownerColor:
-                                        colorForMember[event.creatorMemberId] ?? context.colors.border,
+                                    colorForMember: colorForMember,
                                     onTap: () => _openAddEditSheet(existing: event),
                                   );
                                 },
@@ -446,16 +446,18 @@ class _DateSubHeader extends StatelessWidget {
 class _EventListTile extends StatelessWidget {
   const _EventListTile({
     required this.event,
-    required this.ownerColor,
+    required this.colorForMember,
     required this.onTap,
   });
 
   final Event event;
-  final Color ownerColor;
+  final Map<int, Color> colorForMember;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final ownerColor = colorForMember[event.creatorMemberId] ?? context.colors.border;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
@@ -481,11 +483,31 @@ class _EventListTile extends StatelessWidget {
             '${event.visibility == EventVisibility.private ? ' · Private' : ''}',
             style: Theme.of(context).textTheme.labelMedium,
           ),
-          trailing: Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(color: ownerColor, shape: BoxShape.circle),
-          ),
+          trailing: event.participants.isEmpty
+              ? Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(color: ownerColor, shape: BoxShape.circle),
+                )
+              : SizedBox(
+                  height: 22,
+                  child: Stack(
+                    children: [
+                      for (final entry in event.participants.take(3).toList().asMap().entries)
+                        Padding(
+                          padding: EdgeInsets.only(left: entry.key * 14.0),
+                          child: MemberAvatar(
+                            name: entry.value.name,
+                            colorIndex: AppColors.memberPalette.indexOf(
+                              colorForMember[entry.value.id] ?? AppColors.memberPalette.first,
+                            ),
+                            avatarUrl: entry.value.avatarUrl,
+                            size: 22,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
         ),
       ),
     );
@@ -513,6 +535,7 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
   late DateTime _startAt;
   late DateTime _endAt;
   late EventVisibility _visibility;
+  late Set<int> _selectedParticipantIds;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -520,6 +543,7 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
   void initState() {
     super.initState();
     final existing = widget.existing;
+    _selectedParticipantIds = existing?.participants.map((p) => p.id).toSet() ?? {};
     if (existing != null) {
       _titleController.text = existing.title;
       _descriptionController.text = existing.description ?? '';
@@ -604,6 +628,7 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
           startAt: _startAt,
           endAt: _endAt,
           visibility: _visibility,
+          participantMemberIds: _selectedParticipantIds.toList(),
         );
       } else {
         await repository.create(
@@ -613,6 +638,7 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
           startAt: _startAt,
           endAt: _endAt,
           visibility: _visibility,
+          participantMemberIds: _selectedParticipantIds.toList(),
         );
       }
       if (mounted) Navigator.of(context).pop(true);
@@ -649,6 +675,7 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
   Widget build(BuildContext context) {
     final isEditing = widget.existing != null;
     final dateFormat = DateFormat('MMM d, y  •  h:mm a');
+    final members = ref.watch(currentHouseholdMembersProvider).valueOrNull ?? const <Member>[];
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -698,6 +725,28 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
           selected: {_visibility},
           onSelectionChanged: (selection) => setState(() => _visibility = selection.first),
         ),
+        if (members.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Text('Participants', style: Theme.of(context).textTheme.labelMedium),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 16,
+            runSpacing: 12,
+            children: [
+              for (final entry in members.asMap().entries)
+                _ParticipantChip(
+                  member: entry.value,
+                  colorIndex: entry.key,
+                  selected: _selectedParticipantIds.contains(entry.value.id),
+                  onTap: () => setState(() {
+                    if (!_selectedParticipantIds.remove(entry.value.id)) {
+                      _selectedParticipantIds.add(entry.value.id);
+                    }
+                  }),
+                ),
+            ],
+          ),
+        ],
         const SizedBox(height: 16),
         PrimaryButton(
           label: isEditing ? 'Save changes' : 'Add event',
@@ -716,6 +765,68 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
           ),
         ],
       ],
+    );
+  }
+}
+
+class _ParticipantChip extends StatelessWidget {
+  const _ParticipantChip({
+    required this.member,
+    required this.colorIndex,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Member member;
+  final int colorIndex;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Opacity(
+            opacity: selected ? 1 : 0.4,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                MemberAvatar(
+                  name: member.name,
+                  colorIndex: colorIndex,
+                  avatarUrl: member.avatarUrl,
+                  size: 48,
+                ),
+                if (selected)
+                  Positioned(
+                    right: -2,
+                    bottom: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(1),
+                      decoration: BoxDecoration(
+                        color: context.colors.surface,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        LucideIcons.checkCircle,
+                        size: 16,
+                        color: context.colors.primary,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            member.name.split(' ').first,
+            style: Theme.of(context).textTheme.labelMedium,
+          ),
+        ],
+      ),
     );
   }
 }

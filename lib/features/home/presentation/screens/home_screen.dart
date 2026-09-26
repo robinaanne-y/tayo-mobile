@@ -114,17 +114,25 @@ class HomeScreen extends ConsumerWidget {
               color: context.colors.surface,
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(_dateLabel, style: Theme.of(context).textTheme.bodySmall),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(_dateLabel, style: Theme.of(context).textTheme.bodySmall),
+                        ),
                         const SizedBox(height: 2),
-                        Text(
-                          '${greeting.text} ${greeting.emoji}',
-                          style: Theme.of(context).textTheme.headlineSmall,
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '${greeting.text} ${greeting.emoji}',
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
                         ),
                       ],
                     ),

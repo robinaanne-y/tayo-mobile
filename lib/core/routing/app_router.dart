@@ -55,17 +55,24 @@ final routerProvider = Provider<GoRouter>((ref) {
         return location == '/splash' ? null : '/splash';
       }
 
+      final loggedOutRoutes = {'/welcome', '/login'};
+
+      // Checked before the pending-deep-link redirect below: an
+      // unauthenticated visitor who taps "Sign in to join" from the invite/
+      // activate screen must actually be allowed to reach /login, or they'd
+      // get bounced straight back to the invite screen before ever seeing
+      // it (location != target on every redirect evaluation) — trapped
+      // with no way to create an account or sign in. Once they finish
+      // authenticating, the pending-link redirect below brings them back.
+      if (authState.status == AuthStatus.unauthenticated) {
+        return loggedOutRoutes.contains(location) ? null : '/welcome';
+      }
+
       final pendingLink = ref.read(pendingDeepLinkProvider);
       if (pendingLink != null && pendingLink.pathSegments.isNotEmpty) {
         final token = pendingLink.pathSegments.first;
         final target = pendingLink.host == 'activate' ? '/activate/$token' : '/invite/$token';
         if (location != target) return target;
-      }
-
-      final loggedOutRoutes = {'/welcome', '/login'};
-
-      if (authState.status == AuthStatus.unauthenticated) {
-        return loggedOutRoutes.contains(location) ? null : '/welcome';
       }
 
       // Authenticated from here on.

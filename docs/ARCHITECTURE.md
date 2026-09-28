@@ -605,7 +605,7 @@ The calendar should query events through authorization-aware services rather tha
 
 ---
 
-# 12. Permission Request Architecture
+# 12. Permission Request Architecture — ✅ Implemented (Phase 4)
 
 A request represents an action that requires adult approval.
 
@@ -662,6 +662,34 @@ Optional Condition
  ↓
 Calendar Event
 ```
+
+> **Foundation note — actual field/table names differ from the sketch
+> above** (the API side documents why in its own `ARCHITECTURE.md`):
+> the table is `permission_requests` (`Request` collides with
+> `Illuminate\Http\Request`), `target_date` became
+> `requested_start_at`/`requested_end_at` (a time *range*, matching the
+> "Saturday 3–6 PM" example above), and `request_conditions` uses
+> `permission_request_id`/`description` rather than `request_id`/
+> `content`. "Adult Notification" above is, for now, in-app only: Home's
+> header bell (already scaffolded with `onPressed: null` before this
+> phase) gained a badge count and now pushes to the Requests screen —
+> there's no push/realtime notification yet, since that's Phase 9.
+>
+> New `lib/features/requests/` slice mirrors `lib/features/calendar/`'s
+> layering exactly (`domain/permission_request.dart`,
+> `data/permission_request_repository.dart`,
+> `presentation/providers/permission_request_providers.dart`,
+> `presentation/screens/requests_screen.dart`). `RequestsScreen` is a
+> pushed `GoRoute` (`/requests`), not a 6th bottom-nav tab — the shell
+> hardcodes exactly 5. Who can act on a request is computed client-side
+> with the same raw-string role check Home already used for Family
+> Notes/Announcements moderation (`myRole == 'owner' || myRole ==
+> 'adult'`), rather than introducing a new role-helper abstraction: an
+> Owner/Adult who isn't the requester sees Approve/Decline (with an
+> optional response note, an optional condition, and — only when the
+> request has a time window — an "Add to calendar" checkbox); the
+> requester sees Edit/Cancel while their request is still pending;
+> everyone else sees a read-only view.
 
 ---
 
@@ -1722,6 +1750,12 @@ Run tests: `flutter test` (5 passing). Static analysis: `flutter analyze`
 - Full Light/Dark/System theming — see §25 "Foundation note — Theming"
   above for the `AppColorTokens`/`AppColors` split. Toggle lives in
   Profile ("Appearance")
+- Calendar: event CRUD, Month/Week/Day views, all 4 visibility levels,
+  participants, location, daily/weekly/monthly recurrence — see §11
+  "Foundation note"
+- Permission requests: create/edit/cancel, adult approve/decline with
+  conditions, optional promotion to a calendar event, surfaced on Home
+  and via the header bell — see §12 "Foundation note"
 
 ## What's deliberately not implemented yet
 

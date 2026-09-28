@@ -5,17 +5,16 @@
 > activation, user profile editing, household switching, member profile
 > editing, household profile settings) is fully implemented. Phase 2 (Home
 > & Family Feed) is in progress — the Home screen layout, Family Notes,
-> Announcements, and (as of Phase 3's core slice) Today's Schedule are
-> real; the rest of the feed is an honest empty state until Phases 4-7
-> land. The app's color system was overhauled and a real Light/Dark/System
-> theme mode shipped (toggle in Profile → Appearance) — see
-> `ARCHITECTURE.md` §25 "Foundation note — Theming". Phase 3's core slice
-> (event CRUD, month-view Calendar, private/household visibility) is done
-> — see the Phase 3 section below and `ARCHITECTURE.md` for what's
-> implemented now versus deferred (recurring events, week/day views,
-> cross-household visibility, participants, location). See
-> `ARCHITECTURE.md` → "Foundation Implementation Notes" for exactly what
-> exists today and how to run it.
+> Announcements, Today's Schedule, and "Needs Your Attention" (Phase 4's
+> permission requests) are real; the rest of the feed is an honest empty
+> state until Phases 5-7 land. The app's color system was overhauled and a
+> real Light/Dark/System theme mode shipped (toggle in Profile →
+> Appearance) — see `ARCHITECTURE.md` §25 "Foundation note — Theming".
+> Phase 3 is fully done (event CRUD, Month/Week/Day views, all 4
+> visibility levels, participants, location, daily/weekly/monthly
+> recurrence). Phase 4's permission requests are done (meal requests are
+> Phase 5). See `ARCHITECTURE.md` → "Foundation Implementation Notes" for
+> exactly what exists today and how to run it.
 
 ## 1. Product Vision
 
@@ -362,13 +361,12 @@ right subset of events in each.
 
 ---
 
-# Phase 4 — Family Requests
+# Phase 4 — Family Requests — ✅ Done (Permission Requests)
 
 ## Permission Requests
 
-A minor can request permission to attend an activity.
-
-Example:
+A member (in practice usually a minor) can request permission to attend
+an activity. Example:
 
 ```text
 Birthday Party
@@ -378,12 +376,24 @@ John's House
 
 Adult actions:
 
-- Approve
-- Decline
-- Add conditions
-- Add notes
+- [x] Approve (with an optional response note and/or condition)
+- [x] Decline (with an optional response note)
+- [x] Add conditions (independently of approving/declining)
+- [x] Add notes (the `response_note` on approve/decline)
 
-Approved requests can optionally become calendar events.
+- [x] Approved requests can optionally become calendar events — an "Add
+      to calendar" checkbox on the approve sheet, only shown when the
+      request has a time window.
+- [x] A new "Requests" screen (list with status filter chips, a "New
+      request" sheet with an optional time-window picker) reached from
+      Home's header bell (which also carries a badge count) or the
+      "Permissions" tile under Home's "More" row.
+- [x] Home's "Needs Your Attention" section shows real pending requests
+      the viewer can act on (Owner/Adult, never their own request).
+
+The recurrence pattern for who can act mirrors the API: only an
+Owner/Adult who isn't the requester sees Approve/Decline; the requester
+sees Edit/Cancel while their request is still pending.
 
 ## Meal Requests
 
@@ -398,7 +408,8 @@ Adults can:
 
 ### Milestone
 
-The app facilitates family decisions, not just information sharing.
+The app facilitates family decisions, not just information sharing. Met
+for permission requests; meal requests are Phase 5.
 
 ---
 

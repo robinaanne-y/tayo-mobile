@@ -552,11 +552,56 @@ The calendar should query events through authorization-aware services rather tha
 > participants also render as a small overlapping avatar stack on each
 > event card, replacing the single owner-color dot once an event has any.
 >
-> Recurring events, cross-household visibility, and location are still
-> not built — see `ROADMAP.md` → Phase 3 for the deferred list, and
-> `tayo-api`'s `ARCHITECTURE.md`/`ROADMAP.md` for the schema-extensibility
-> notes (visibility is a plain string column specifically so the
-> remaining levels are a validation change later, not a migration).
+> **Location**: a plain optional `AppTextField` in the add/edit sheet
+> (right after Description), round-tripped through `Event.location` and
+> shown on the event card as a `LucideIcons.mapPin` line under the time/
+> participants line, only when non-empty.
+>
+> **Member filtering**: entirely client-side — `_CalendarScreenState`
+> holds a `Set<int> _filterMemberIds` (empty means "show everything",
+> the same "empty set = no restriction" convention already used for
+> `_selectedParticipantIds` in the add/edit sheet). The header's legend
+> row doubles as the filter control: tapping a member toggles them in
+> the set, and `_eventMatchesFilter()` checks each event's participants
+> (or creator, when nobody's tagged) against it before building
+> `eventsByDay`. No new endpoint or query param — the `index` response
+> already carries every event's participants/creator, so this is a pure
+> view-layer filter over data already fetched for the visible range.
+>
+> **Multi-household visibility**: `EventVisibility` gained
+> `selectedHouseholds`/`allMemberHouseholds` (explicit `value` strings on
+> each enum member now, since `.name`'s camelCase no longer matches the
+> API's snake_case for these two). The add/edit sheet's visibility
+> control changed from a 2-option `SegmentedButton` to a
+> `DropdownButtonFormField<EventVisibility>` — scales to 4 options
+> without cramming a segmented control — whose item list only offers the
+> two multi-household values when
+> `authControllerProvider`'s `user.households.length > 1` (no point
+> offering it to someone in one household). Choosing "Selected
+> households" reveals a `Wrap` of tappable `_HouseholdShareChip`s (the
+> user's *other* households, same dimmed/checkmarked language as
+> `_ParticipantChip` one level up), toggling `Set<int>
+> _selectedHouseholdIds` sent as `shared_household_ids`. `Event` gained
+> `sharedHouseholds` (`List<Household>`, reusing the existing household
+> domain model — already exactly the API's `HouseholdResource` shape).
+> No event-card display change — visibility beyond private isn't
+> surfaced there.
+>
+> **Recurring events**: `EventRepository.create()` gains optional
+> `recurrenceFrequency`/`recurrenceInterval`/`recurrenceByDay`/
+> `recurrenceEndsAt`/`recurrenceOccurrenceCount` params, nested into a
+> `recurrence` map on the POST body only when a frequency is chosen —
+> `update()`/`delete()` never send it, since the API treats the pattern
+> as immutable after creation. `update()` gains `editScope` and
+> `delete()` gains `scope` (`'this'` default | `'following'`); the
+> add/edit sheet (`_AddEditEventSheet` in `calendar_screen.dart`) shows a
+> small "This event" / "This and following events" prompt before saving
+> or deleting whenever `existing.isRecurring` is true. The "Repeats"
+> section itself (frequency dropdown, interval, weekday chips, end
+> date/occurrence-count radio choice) only renders when creating a new
+> event, never when editing — there's no UI path to change a series'
+> pattern once it exists. See `tayo-api`'s `ARCHITECTURE.md`/`ROADMAP.md`
+> for the generation/cap/scope details on the API side.
 
 ---
 

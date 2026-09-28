@@ -26,20 +26,37 @@ class EventRepository {
     required int householdId,
     required String title,
     String? description,
+    String? location,
     required DateTime startAt,
     required DateTime endAt,
     required EventVisibility visibility,
     List<int> participantMemberIds = const [],
+    List<int> sharedHouseholdIds = const [],
+    RecurrenceFrequency? recurrenceFrequency,
+    int recurrenceInterval = 1,
+    List<int>? recurrenceByDay,
+    DateTime? recurrenceEndsAt,
+    int? recurrenceOccurrenceCount,
   }) async {
     final response = await _apiClient.post(
       '/households/$householdId/events',
       data: {
         'title': title,
         'description': description,
+        'location': location,
         'start_at': startAt.toUtc().toIso8601String(),
         'end_at': endAt.toUtc().toIso8601String(),
         'visibility': visibility.value,
         'participant_member_ids': participantMemberIds,
+        'shared_household_ids': sharedHouseholdIds,
+        if (recurrenceFrequency != null)
+          'recurrence': {
+            'frequency': recurrenceFrequency.value,
+            'interval': recurrenceInterval,
+            if (recurrenceByDay != null) 'by_day': recurrenceByDay,
+            if (recurrenceEndsAt != null) 'ends_at': recurrenceEndsAt.toUtc().toIso8601String(),
+            if (recurrenceOccurrenceCount != null) 'occurrence_count': recurrenceOccurrenceCount,
+          },
       },
     );
     return Event.fromJson(
@@ -52,20 +69,26 @@ class EventRepository {
     required int eventId,
     required String title,
     String? description,
+    String? location,
     required DateTime startAt,
     required DateTime endAt,
     required EventVisibility visibility,
     List<int> participantMemberIds = const [],
+    List<int> sharedHouseholdIds = const [],
+    String editScope = 'this',
   }) async {
     final response = await _apiClient.put(
       '/households/$householdId/events/$eventId',
       data: {
         'title': title,
         'description': description,
+        'location': location,
         'start_at': startAt.toUtc().toIso8601String(),
         'end_at': endAt.toUtc().toIso8601String(),
         'visibility': visibility.value,
         'participant_member_ids': participantMemberIds,
+        'shared_household_ids': sharedHouseholdIds,
+        'edit_scope': editScope,
       },
     );
     return Event.fromJson(
@@ -73,7 +96,14 @@ class EventRepository {
     );
   }
 
-  Future<void> delete({required int householdId, required int eventId}) async {
-    await _apiClient.delete('/households/$householdId/events/$eventId');
+  Future<void> delete({
+    required int householdId,
+    required int eventId,
+    String scope = 'this',
+  }) async {
+    await _apiClient.delete(
+      '/households/$householdId/events/$eventId',
+      queryParameters: {'scope': scope},
+    );
   }
 }

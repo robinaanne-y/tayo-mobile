@@ -14,6 +14,9 @@ import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/member_avatar.dart';
 import '../../../../shared/widgets/participant_avatar_stack.dart';
 import '../../../../shared/widgets/primary_button.dart';
+import '../../../auth/presentation/providers/auth_controller.dart';
+import '../../../households/domain/household.dart';
+import '../../../households/presentation/household_visuals.dart';
 import '../../../households/presentation/providers/household_providers.dart';
 import '../../../members/domain/member.dart';
 import '../../../members/presentation/providers/member_providers.dart';
@@ -21,6 +24,24 @@ import '../../domain/event.dart';
 import '../providers/event_providers.dart';
 
 enum _CalendarViewMode { month, week, day }
+
+String _visibilityLabel(EventVisibility visibility) => switch (visibility) {
+      EventVisibility.private => 'Private',
+      EventVisibility.household => 'Household',
+      EventVisibility.selectedHouseholds => 'Selected households',
+      EventVisibility.allMemberHouseholds => 'All my households',
+    };
+
+String _recurrenceUnitLabel(RecurrenceFrequency frequency, int interval) {
+  final plural = interval != 1;
+  return switch (frequency) {
+    RecurrenceFrequency.daily => plural ? 'days' : 'day',
+    RecurrenceFrequency.weekly => plural ? 'weeks' : 'week',
+    RecurrenceFrequency.monthly => plural ? 'months' : 'month',
+  };
+}
+
+const _weekdayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 /// The member an event is displayed as belonging to, for color-coding and
 /// labeling — the first tagged participant when there is one, since the
@@ -46,6 +67,16 @@ String _participantsLabel(Event event, int householdMemberCount) {
   return '$shown +${participants.length - 2} more';
 }
 
+/// Whether [event] should be visible under the Calendar screen's member
+/// filter — an empty [filterMemberIds] means "no filter, show everything".
+/// An event matches when any of its tagged participants is in the filter,
+/// or (for an event nobody's been tagged on) when its creator is.
+bool _eventMatchesFilter(Event event, Set<int> filterMemberIds) {
+  if (filterMemberIds.isEmpty) return true;
+  if (event.participants.isEmpty) return filterMemberIds.contains(event.creatorMemberId);
+  return event.participants.any((p) => filterMemberIds.contains(p.id));
+}
+
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
 
@@ -57,6 +88,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime _selectedDay = DateTime.now();
   _CalendarViewMode _viewMode = _CalendarViewMode.month;
+  final Set<int> _filterMemberIds = {};
+
+  void _toggleMemberFilter(int memberId) {
+    setState(() {
+      if (!_filterMemberIds.remove(memberId)) {
+        _filterMemberIds.add(memberId);
+      }
+    });
+  }
 
   ({DateTime start, DateTime end}) get _visibleRange {
     switch (_viewMode) {
@@ -131,12 +171,16 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               onViewModeChanged: (mode) => setState(() => _viewMode = mode),
               members: members,
               colorForMember: colorForMember,
+              filterMemberIds: _filterMemberIds,
+              onMemberToggled: _toggleMemberFilter,
             ),
             Expanded(
               child: eventsAsync.when(
                 data: (events) {
+                  final visibleEvents =
+                      events.where((e) => _eventMatchesFilter(e, _filterMemberIds)).toList();
                   final eventsByDay = <DateTime, List<Event>>{};
-                  for (final event in events) {
+                  for (final event in visibleEvents) {
                     final day = DateTime(event.startAt.year, event.startAt.month, event.startAt.day);
                     eventsByDay.putIfAbsent(day, () => []).add(event);
                   }
@@ -272,6 +316,8 @@ class _CalendarHeader extends StatelessWidget {
     required this.onViewModeChanged,
     required this.members,
     required this.colorForMember,
+    required this.filterMemberIds,
+    required this.onMemberToggled,
   });
 
   final String title;
@@ -279,6 +325,8 @@ class _CalendarHeader extends StatelessWidget {
   final ValueChanged<_CalendarViewMode> onViewModeChanged;
   final List<Member> members;
   final Map<int, Color> colorForMember;
+  final Set<int> filterMemberIds;
+  final ValueChanged<int> onMemberToggled;
 
   @override
   Widget build(BuildContext context) {
@@ -318,29 +366,72 @@ class _CalendarHeader extends StatelessWidget {
           if (members.isNotEmpty) ...[
             const SizedBox(height: 12),
             Wrap(
-              spacing: 16,
+              spacing: 8,
               runSpacing: 8,
               children: [
                 for (final member in members)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: colorForMember[member.id],
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(member.name, style: Theme.of(context).textTheme.labelMedium),
-                    ],
+                  _MemberFilterChip(
+                    member: member,
+                    color: colorForMember[member.id] ?? context.colors.border,
+                    isFilterActive: filterMemberIds.isNotEmpty,
+                    isSelected: filterMemberIds.contains(member.id),
+                    onTap: () => onMemberToggled(member.id),
                   ),
               ],
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// A tappable legend entry that doubles as a member filter: tapping it
+/// toggles whether the Calendar screen narrows down to just that member's
+/// events. Undimmed and unhighlighted when no filter is active (today's
+/// plain legend look); once any member is selected, the rest dim so the
+/// active filter is obvious.
+class _MemberFilterChip extends StatelessWidget {
+  const _MemberFilterChip({
+    required this.member,
+    required this.color,
+    required this.isFilterActive,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final Member member;
+  final Color color;
+  final bool isFilterActive;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: !isFilterActive || isSelected ? 1 : 0.4,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withValues(alpha: 0.12) : null,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 6),
+              Text(member.name, style: Theme.of(context).textTheme.labelMedium),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -520,11 +611,51 @@ class _EventListTile extends StatelessWidget {
             ),
           ),
           title: event.title,
-          subtitle: Text(
-            '${DateFormat.jm().format(event.startAt)} · '
-            '${_participantsLabel(event, householdMemberCount)}'
-            '${event.visibility == EventVisibility.private ? ' · Private' : ''}',
-            style: Theme.of(context).textTheme.labelMedium,
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '${DateFormat.jm().format(event.startAt)} · '
+                '${_participantsLabel(event, householdMemberCount)}'
+                '${event.visibility == EventVisibility.private ? ' · Private' : ''}',
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+              if (event.location != null && event.location!.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(LucideIcons.mapPin, size: 12, color: context.colors.textSecondary),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        event.location!,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelMedium,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              if (event.isRecurring) ...[
+                const SizedBox(height: 2),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(LucideIcons.repeat, size: 12, color: context.colors.textSecondary),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        event.recurrenceSummary ?? 'Repeats',
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelMedium,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
           ),
           trailing: event.participants.isEmpty
               ? Container(
@@ -557,24 +688,39 @@ class _AddEditEventSheet extends ConsumerStatefulWidget {
   ConsumerState<_AddEditEventSheet> createState() => _AddEditEventSheetState();
 }
 
+enum _RecurrenceEndMode { onDate, afterCount }
+
 class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _locationController = TextEditingController();
+  final _recurrenceIntervalController = TextEditingController(text: '1');
+  final _recurrenceOccurrenceCountController = TextEditingController(text: '4');
   late DateTime _startAt;
   late DateTime _endAt;
   late EventVisibility _visibility;
   late Set<int> _selectedParticipantIds;
+  late Set<int> _selectedHouseholdIds;
   bool _isLoading = false;
   String? _errorMessage;
+
+  // Recurrence is create-only: the pattern is immutable once the event
+  // exists, so none of this is read from `widget.existing`.
+  RecurrenceFrequency? _recurrenceFrequency;
+  Set<int> _recurrenceByDay = {};
+  _RecurrenceEndMode _recurrenceEndMode = _RecurrenceEndMode.onDate;
+  DateTime? _recurrenceEndsAt;
 
   @override
   void initState() {
     super.initState();
     final existing = widget.existing;
     _selectedParticipantIds = existing?.participants.map((p) => p.id).toSet() ?? {};
+    _selectedHouseholdIds = existing?.sharedHouseholds.map((h) => h.id).toSet() ?? {};
     if (existing != null) {
       _titleController.text = existing.title;
       _descriptionController.text = existing.description ?? '';
+      _locationController.text = existing.location ?? '';
       _startAt = existing.startAt;
       _endAt = existing.endAt;
       _visibility = existing.visibility;
@@ -595,7 +741,43 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _locationController.dispose();
+    _recurrenceIntervalController.dispose();
+    _recurrenceOccurrenceCountController.dispose();
     super.dispose();
+  }
+
+  /// Shown before saving/deleting an occurrence that belongs to a
+  /// recurring series, since the pattern itself can't be edited — only how
+  /// far the change propagates. Returns 'this', 'following', or null if
+  /// the user backed out.
+  Future<String?> _pickEditScope(String actionLabel) {
+    return showAppBottomSheet<String>(
+      context: context,
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('$actionLabel this event', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          Text(
+            'This is part of a repeating series.',
+            style: Theme.of(context).textTheme.labelMedium,
+          ),
+          const SizedBox(height: 8),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('This event'),
+            onTap: () => Navigator.of(context).pop('this'),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('This and following events'),
+            onTap: () => Navigator.of(context).pop('following'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _pickDateTime({required bool isStart}) async {
@@ -637,36 +819,74 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
       return;
     }
 
+    int? recurrenceOccurrenceCount;
+    if (_recurrenceFrequency != null) {
+      if (_recurrenceEndMode == _RecurrenceEndMode.onDate) {
+        if (_recurrenceEndsAt == null) {
+          setState(() => _errorMessage = 'Choose an end date for the recurrence.');
+          return;
+        }
+      } else {
+        recurrenceOccurrenceCount = int.tryParse(_recurrenceOccurrenceCountController.text);
+        if (recurrenceOccurrenceCount == null || recurrenceOccurrenceCount < 1) {
+          setState(() => _errorMessage = 'Enter how many times the event should occur.');
+          return;
+        }
+      }
+    }
+
+    final existing = widget.existing;
+    var editScope = 'this';
+    if (existing != null && existing.isRecurring) {
+      final scope = await _pickEditScope('Save changes to');
+      if (scope == null) return;
+      editScope = scope;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     final description = _descriptionController.text.trim();
+    final location = _locationController.text.trim();
 
     try {
       final repository = ref.read(eventRepositoryProvider);
-      final existing = widget.existing;
       if (existing != null) {
         await repository.update(
           householdId: widget.householdId,
           eventId: existing.id,
           title: title,
           description: description.isEmpty ? null : description,
+          location: location.isEmpty ? null : location,
           startAt: _startAt,
           endAt: _endAt,
           visibility: _visibility,
           participantMemberIds: _selectedParticipantIds.toList(),
+          sharedHouseholdIds: _selectedHouseholdIds.toList(),
+          editScope: editScope,
         );
       } else {
+        final interval = int.tryParse(_recurrenceIntervalController.text) ?? 1;
         await repository.create(
           householdId: widget.householdId,
           title: title,
           description: description.isEmpty ? null : description,
+          location: location.isEmpty ? null : location,
           startAt: _startAt,
           endAt: _endAt,
           visibility: _visibility,
           participantMemberIds: _selectedParticipantIds.toList(),
+          sharedHouseholdIds: _selectedHouseholdIds.toList(),
+          recurrenceFrequency: _recurrenceFrequency,
+          recurrenceInterval: interval < 1 ? 1 : interval,
+          recurrenceByDay: _recurrenceFrequency == RecurrenceFrequency.weekly
+              ? _recurrenceByDay.toList()
+              : null,
+          recurrenceEndsAt:
+              _recurrenceEndMode == _RecurrenceEndMode.onDate ? _recurrenceEndsAt : null,
+          recurrenceOccurrenceCount: recurrenceOccurrenceCount,
         );
       }
       if (mounted) Navigator.of(context).pop(true);
@@ -681,6 +901,13 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
     final existing = widget.existing;
     if (existing == null) return;
 
+    var deleteScope = 'this';
+    if (existing.isRecurring) {
+      final scope = await _pickEditScope('Delete');
+      if (scope == null) return;
+      deleteScope = scope;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -690,6 +917,7 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
       await ref.read(eventRepositoryProvider).delete(
             householdId: widget.householdId,
             eventId: existing.id,
+            scope: deleteScope,
           );
       if (mounted) Navigator.of(context).pop(true);
     } on ApiException catch (e) {
@@ -704,6 +932,10 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
     final isEditing = widget.existing != null;
     final dateFormat = DateFormat('MMM d, y  •  h:mm a');
     final members = ref.watch(currentHouseholdMembersProvider).valueOrNull ?? const <Member>[];
+    final myHouseholds = ref.watch(authControllerProvider).user?.households ?? const <Household>[];
+    final otherHouseholds =
+        myHouseholds.where((h) => h.id != widget.householdId).toList();
+    final canShareAcrossHouseholds = otherHouseholds.isNotEmpty;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -718,6 +950,8 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
         AppTextField(label: 'Title', controller: _titleController),
         const SizedBox(height: 16),
         AppTextField(label: 'Description (optional)', controller: _descriptionController),
+        const SizedBox(height: 16),
+        AppTextField(label: 'Location (optional)', controller: _locationController),
         const SizedBox(height: 16),
         InkWell(
           borderRadius: BorderRadius.circular(12),
@@ -736,23 +970,168 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
             child: Text(dateFormat.format(_endAt)),
           ),
         ),
-        const SizedBox(height: 16),
-        SegmentedButton<EventVisibility>(
-          segments: const [
-            ButtonSegment(
-              value: EventVisibility.household,
-              label: Text('Household'),
-              icon: Icon(LucideIcons.users),
+        if (!isEditing) ...[
+          const SizedBox(height: 16),
+          DropdownButtonFormField<RecurrenceFrequency?>(
+            initialValue: _recurrenceFrequency,
+            decoration: const InputDecoration(labelText: 'Repeats'),
+            items: const [
+              DropdownMenuItem(value: null, child: Text('Does not repeat')),
+              DropdownMenuItem(value: RecurrenceFrequency.daily, child: Text('Daily')),
+              DropdownMenuItem(value: RecurrenceFrequency.weekly, child: Text('Weekly')),
+              DropdownMenuItem(value: RecurrenceFrequency.monthly, child: Text('Monthly')),
+            ],
+            onChanged: (value) => setState(() {
+              _recurrenceFrequency = value;
+              if (value == RecurrenceFrequency.weekly && _recurrenceByDay.isEmpty) {
+                _recurrenceByDay = {_startAt.weekday};
+              }
+            }),
+          ),
+          if (_recurrenceFrequency != null) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Text('Every', style: Theme.of(context).textTheme.labelMedium),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 64,
+                  child: AppTextField(
+                    label: '',
+                    controller: _recurrenceIntervalController,
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _recurrenceUnitLabel(
+                    _recurrenceFrequency!,
+                    int.tryParse(_recurrenceIntervalController.text) ?? 1,
+                  ),
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+              ],
             ),
-            ButtonSegment(
-              value: EventVisibility.private,
-              label: Text('Private'),
-              icon: Icon(LucideIcons.lock),
+            if (_recurrenceFrequency == RecurrenceFrequency.weekly) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (var day = 1; day <= 7; day++)
+                    _WeekdayChip(
+                      day: day,
+                      selected: _recurrenceByDay.contains(day),
+                      onTap: () => setState(() {
+                        if (!_recurrenceByDay.remove(day)) {
+                          _recurrenceByDay.add(day);
+                        }
+                      }),
+                    ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 12),
+            Text('Ends', style: Theme.of(context).textTheme.labelMedium),
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: () async {
+                setState(() => _recurrenceEndMode = _RecurrenceEndMode.onDate);
+                final date = await showDatePicker(
+                  context: context,
+                  initialDate: _recurrenceEndsAt ?? _startAt.add(const Duration(days: 30)),
+                  firstDate: _startAt,
+                  lastDate: DateTime.now().add(const Duration(days: 1825)),
+                );
+                if (date != null) setState(() => _recurrenceEndsAt = date);
+              },
+              child: Row(
+                children: [
+                  Icon(
+                    _recurrenceEndMode == _RecurrenceEndMode.onDate
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_unchecked,
+                    size: 20,
+                    color: context.colors.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _recurrenceEndsAt == null
+                        ? 'On date'
+                        : 'On ${DateFormat('MMM d, y').format(_recurrenceEndsAt!)}',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: () => setState(() => _recurrenceEndMode = _RecurrenceEndMode.afterCount),
+              child: Row(
+                children: [
+                  Icon(
+                    _recurrenceEndMode == _RecurrenceEndMode.afterCount
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_unchecked,
+                    size: 20,
+                    color: context.colors.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  const Text('After'),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 56,
+                    child: AppTextField(
+                      label: '',
+                      controller: _recurrenceOccurrenceCountController,
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text('occurrences'),
+                ],
+              ),
             ),
           ],
-          selected: {_visibility},
-          onSelectionChanged: (selection) => setState(() => _visibility = selection.first),
+        ],
+        const SizedBox(height: 16),
+        DropdownButtonFormField<EventVisibility>(
+          initialValue: _visibility,
+          decoration: const InputDecoration(labelText: 'Visibility'),
+          items: [
+            for (final visibility in EventVisibility.values)
+              if (visibility != EventVisibility.selectedHouseholds &&
+                      visibility != EventVisibility.allMemberHouseholds ||
+                  canShareAcrossHouseholds)
+                DropdownMenuItem(
+                  value: visibility,
+                  child: Text(_visibilityLabel(visibility)),
+                ),
+          ],
+          onChanged: (value) {
+            if (value != null) setState(() => _visibility = value);
+          },
         ),
+        if (_visibility == EventVisibility.selectedHouseholds) ...[
+          const SizedBox(height: 16),
+          Text('Share with', style: Theme.of(context).textTheme.labelMedium),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final household in otherHouseholds)
+                _HouseholdShareChip(
+                  household: household,
+                  selected: _selectedHouseholdIds.contains(household.id),
+                  onTap: () => setState(() {
+                    if (!_selectedHouseholdIds.remove(household.id)) {
+                      _selectedHouseholdIds.add(household.id);
+                    }
+                  }),
+                ),
+            ],
+          ),
+        ],
         if (members.isNotEmpty) ...[
           const SizedBox(height: 16),
           Text('Participants', style: Theme.of(context).textTheme.labelMedium),
@@ -854,6 +1233,98 @@ class _ParticipantChip extends StatelessWidget {
             style: Theme.of(context).textTheme.labelMedium,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A tappable chip for picking which of the user's *other* households a
+/// `selected_households` event is shared into — the same
+/// dimmed/checkmarked selection language as `_ParticipantChip`, one level
+/// up (a household, not a member).
+/// A single weekday toggle for the "Repeats weekly" day picker. [day] is an
+/// ISO weekday (1 = Monday .. 7 = Sunday), matching both Dart's
+/// [DateTime.weekday] and the API's `recurrence.by_day` values.
+class _WeekdayChip extends StatelessWidget {
+  const _WeekdayChip({
+    required this.day,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final int day;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        width: 32,
+        height: 32,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? context.colors.primary : null,
+          shape: BoxShape.circle,
+          border: Border.all(color: selected ? context.colors.primary : context.colors.border),
+        ),
+        child: Text(
+          _weekdayLetters[day - 1],
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: selected ? context.colors.primaryForeground : context.colors.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HouseholdShareChip extends StatelessWidget {
+  const _HouseholdShareChip({
+    required this.household,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Household household;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = householdColorFromHex(context, household.color);
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? color.withValues(alpha: 0.12) : null,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: selected ? color : context.colors.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(household.emoji ?? kHouseholdEmojis.first, style: const TextStyle(fontSize: 14)),
+            const SizedBox(width: 6),
+            Text(
+              household.name,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: selected ? color : context.colors.textPrimary,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  ),
+            ),
+            if (selected) ...[
+              const SizedBox(width: 6),
+              Icon(LucideIcons.checkCircle, size: 14, color: color),
+            ],
+          ],
+        ),
       ),
     );
   }

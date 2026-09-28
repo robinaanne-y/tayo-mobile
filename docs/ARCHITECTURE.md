@@ -568,11 +568,28 @@ The calendar should query events through authorization-aware services rather tha
 > already carries every event's participants/creator, so this is a pure
 > view-layer filter over data already fetched for the visible range.
 >
-> Recurring events and cross-household visibility are still not built —
-> see `ROADMAP.md` → Phase 3 for the deferred list, and `tayo-api`'s
-> `ARCHITECTURE.md`/`ROADMAP.md` for the schema-extensibility notes
-> (visibility is a plain string column specifically so the remaining
-> levels are a validation change later, not a migration).
+> **Multi-household visibility**: `EventVisibility` gained
+> `selectedHouseholds`/`allMemberHouseholds` (explicit `value` strings on
+> each enum member now, since `.name`'s camelCase no longer matches the
+> API's snake_case for these two). The add/edit sheet's visibility
+> control changed from a 2-option `SegmentedButton` to a
+> `DropdownButtonFormField<EventVisibility>` — scales to 4 options
+> without cramming a segmented control — whose item list only offers the
+> two multi-household values when
+> `authControllerProvider`'s `user.households.length > 1` (no point
+> offering it to someone in one household). Choosing "Selected
+> households" reveals a `Wrap` of tappable `_HouseholdShareChip`s (the
+> user's *other* households, same dimmed/checkmarked language as
+> `_ParticipantChip` one level up), toggling `Set<int>
+> _selectedHouseholdIds` sent as `shared_household_ids`. `Event` gained
+> `sharedHouseholds` (`List<Household>`, reusing the existing household
+> domain model — already exactly the API's `HouseholdResource` shape).
+> No event-card display change — visibility beyond private isn't
+> surfaced there.
+>
+> Recurring events are still not built — see `ROADMAP.md` → Phase 3 for
+> the deferred item, and `tayo-api`'s `ARCHITECTURE.md`/`ROADMAP.md` for
+> the multi-household query/authorization notes.
 
 ---
 

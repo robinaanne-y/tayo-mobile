@@ -318,33 +318,34 @@ sections are already in place.
       filter: tap a member to narrow the calendar/day list to their
       events, tap again (or select more) to combine/clear. Entirely
       client-side, no new endpoint needed
+- [x] Multiple-household visibility — `selected_households` (pick
+      specific other households you belong to, via a household-chip
+      picker that appears once that visibility is chosen) and
+      `all_member_households` (every household you belong to,
+      automatically). A member belonging to more than one household sees
+      the right subset of events in each.
 
 ## Deferred to a later increment
 
 - [ ] Recurring events
-- [ ] Multiple-household visibility (`selected_households`/
-      `all_member_households`)
 
 ## Visibility Options
 
-Implemented now:
+All 4 implemented:
 
 - Private (creator only)
 - Visible to one household
-
-Deferred (API roadmap has the schema-extensibility notes):
-
-- Visible to multiple households
+- Visible to selected households
 - Visible to all households the member belongs to
 
 ### Milestone
 
-Partially met: a family can use the app as its own household's shared
-calendar (create, edit, delete events; private vs. shared visibility;
-Month/Week/Day views; color-coded by who owns each event; tag which
-members are involved and where; filter down to one or more members). A
-member seeing the right subset of events across *multiple* households,
-and everything in "Deferred" above, remains for a later pass.
+Met for the non-recurring case: a family can use the app as its own
+household's shared calendar (create, edit, delete events; all 4
+visibility levels; Month/Week/Day views; color-coded by who owns each
+event; tag which members are involved and where; filter down to one or
+more members), and a member belonging to multiple households sees the
+right subset of events in each. Recurring events remain for a later pass.
 
 ---
 

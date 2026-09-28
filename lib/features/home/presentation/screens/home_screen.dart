@@ -28,6 +28,8 @@ import '../../../households/presentation/household_visuals.dart';
 import '../../../households/presentation/providers/household_providers.dart';
 import '../../../members/domain/member.dart';
 import '../../../members/presentation/providers/member_providers.dart';
+import '../../../requests/domain/permission_request.dart';
+import '../../../requests/presentation/providers/permission_request_providers.dart';
 
 /// Base hues for note cards — a light tint is used as the background, a
 /// darker shade of the same hue as the border, so each note reads as one
@@ -65,6 +67,20 @@ const _weekdayNames = [
   'Saturday',
   'Sunday',
 ];
+
+/// Pending requests the current viewer can act on — an Owner/Adult, and
+/// never their own request. Mirrors the API policy's `actOnRequest`, using
+/// the same raw-string role comparison already used elsewhere on this
+/// screen (`myRole == 'owner' || myRole == 'adult'`) rather than a new
+/// role helper.
+List<PermissionRequest> _actionableRequests(
+  List<PermissionRequest> pending, {
+  required int? myMemberId,
+  required bool canManage,
+}) {
+  if (!canManage) return const [];
+  return pending.where((r) => r.requesterMemberId != myMemberId).toList();
+}
 
 const _monthNames = [
   'January',
@@ -110,6 +126,16 @@ class HomeScreen extends ConsumerWidget {
     final householdColor = householdColorFromHex(context, household?.color);
     final householdEmoji = household?.emoji ?? kHouseholdEmojis.first;
 
+    final myMemberId = ref.watch(authControllerProvider).user?.member?.id;
+    final canManage = household?.myRole == 'owner' || household?.myRole == 'adult';
+    final actionableCount = ref.watch(currentHouseholdPendingRequestsProvider).valueOrNull != null
+        ? _actionableRequests(
+            ref.watch(currentHouseholdPendingRequestsProvider).valueOrNull!,
+            myMemberId: myMemberId,
+            canManage: canManage,
+          ).length
+        : 0;
+
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -144,9 +170,13 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(width: 12),
                   IconButton(
-                    icon: const Icon(LucideIcons.bell),
+                    icon: Badge(
+                      isLabelVisible: actionableCount > 0,
+                      label: Text('$actionableCount'),
+                      child: const Icon(LucideIcons.bell),
+                    ),
                     tooltip: 'Notifications',
-                    onPressed: null,
+                    onPressed: () => context.go('/requests'),
                   ),
                   // A fixed max width (not Flexible/Expanded) so this pill
                   // doesn't compete for flex space with the greeting column
@@ -220,12 +250,7 @@ class HomeScreen extends ConsumerWidget {
                   const SizedBox(height: 24),
                   Text('Needs Your Attention', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
-                  const _EmptyStateCard(
-                    emoji: '✅',
-                    title: "You're all caught up",
-                    message: 'Permission requests from the family will show '
-                        'up here for you to review.',
-                  ),
+                  const _PendingRequestsSection(),
                   const SizedBox(height: 24),
                   const _FamilyNotesSection(),
                   const SizedBox(height: 24),
@@ -478,6 +503,79 @@ class _TodayEventTile extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// Needs Your Attention: pending permission requests the viewer (an
+/// Owner/Adult, never the requester) can act on — backed by
+/// `households/{household}/requests?status=pending`. Tapping a row opens
+/// the same detail/approve/decline sheet the full Requests screen uses.
+class _PendingRequestsSection extends ConsumerWidget {
+  const _PendingRequestsSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pendingAsync = ref.watch(currentHouseholdPendingRequestsProvider);
+    final household = ref.watch(currentHouseholdProvider);
+    final myMemberId = ref.watch(authControllerProvider).user?.member?.id;
+    final canManage = household?.myRole == 'owner' || household?.myRole == 'adult';
+
+    return pendingAsync.when(
+      data: (pending) {
+        final actionable = _actionableRequests(pending, myMemberId: myMemberId, canManage: canManage);
+
+        if (actionable.isEmpty) {
+          return const _EmptyStateCard(
+            emoji: '✅',
+            title: "You're all caught up",
+            message: 'Permission requests from the family will show '
+                'up here for you to review.',
+          );
+        }
+
+        return AppCard(
+          padding: EdgeInsets.zero,
+          onTap: () => context.go('/requests'),
+          child: Column(
+            children: [
+              for (final entry in actionable.take(3).toList().asMap().entries) ...[
+                if (entry.key > 0) const Divider(height: 1),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    children: [
+                      Icon(LucideIcons.shield, size: 18, color: context.colors.primary),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(entry.value.title, style: Theme.of(context).textTheme.bodyMedium),
+                            Text(
+                              entry.value.requesterName,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, stack) => const _EmptyStateCard(
+        emoji: '✅',
+        title: "Couldn't load requests",
+        message: 'Pull to refresh or try again shortly.',
       ),
     );
   }
@@ -1160,10 +1258,11 @@ class _HouseholdStatusRow extends ConsumerWidget {
   }
 }
 
-/// Chores, Map and Permissions are Phase 6/8/4 work that hasn't started —
-/// each opens the shared ComingSoonScreen rather than faking functionality.
-/// Profile is real: it opens the profile edit screen directly, since
-/// there's no dedicated settings/profile tab yet to house it.
+/// Chores and Map are Phase 6/8 work that hasn't started — each opens the
+/// shared ComingSoonScreen rather than faking functionality. Permissions
+/// and Profile are real: Permissions opens the Requests screen (Phase 4),
+/// Profile opens the profile edit screen directly, since there's no
+/// dedicated settings/profile tab yet to house it.
 class _MoreRow extends StatelessWidget {
   const _MoreRow();
 
@@ -1210,15 +1309,7 @@ class _MoreRow extends StatelessWidget {
             icon: LucideIcons.shield,
             color: AppColors.skyBlue,
             label: 'Permissions',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const ComingSoonScreen(
-                  title: 'Permissions',
-                  icon: LucideIcons.shield,
-                  message: 'Requesting and approving permissions is on its way.',
-                ),
-              ),
-            ),
+            onTap: () => context.go('/requests'),
           ),
         ),
         const SizedBox(width: 10),

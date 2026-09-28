@@ -14,6 +14,7 @@ import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/members/presentation/screens/activate_member_screen.dart';
 import '../../features/members/presentation/screens/family_screen.dart';
 import '../../features/members/presentation/screens/invite_member_screen.dart';
+import '../../features/requests/presentation/screens/requests_screen.dart';
 import '../../shared/screens/coming_soon_screen.dart';
 import 'app_shell.dart';
 import 'deep_link_listener.dart';
@@ -93,6 +94,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/invite-members',
         builder: (context, state) => const InviteMemberScreen(),
+      ),
+      GoRoute(
+        path: '/requests',
+        builder: (context, state) => const RequestsScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>

@@ -1,8 +1,14 @@
-enum EventVisibility {
-  private,
-  household;
+import '../../households/domain/household.dart';
 
-  String get value => name;
+enum EventVisibility {
+  private('private'),
+  household('household'),
+  selectedHouseholds('selected_households'),
+  allMemberHouseholds('all_member_households');
+
+  const EventVisibility(this.value);
+
+  final String value;
 
   static EventVisibility fromValue(String value) {
     return EventVisibility.values.firstWhere((v) => v.value == value);
@@ -45,6 +51,7 @@ class Event {
     required this.endAt,
     required this.visibility,
     required this.participants,
+    required this.sharedHouseholds,
   });
 
   final int id;
@@ -58,6 +65,7 @@ class Event {
   final DateTime endAt;
   final EventVisibility visibility;
   final List<EventParticipant> participants;
+  final List<Household> sharedHouseholds;
 
   factory Event.fromJson(Map<String, dynamic> json) {
     return Event(
@@ -73,6 +81,9 @@ class Event {
       visibility: EventVisibility.fromValue(json['visibility'] as String),
       participants: (json['participants'] as List<dynamic>? ?? [])
           .map((p) => EventParticipant.fromJson(p as Map<String, dynamic>))
+          .toList(),
+      sharedHouseholds: (json['shared_households'] as List<dynamic>? ?? [])
+          .map((h) => Household.fromJson(h as Map<String, dynamic>))
           .toList(),
     );
   }

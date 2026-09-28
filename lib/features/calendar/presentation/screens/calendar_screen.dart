@@ -14,6 +14,9 @@ import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/member_avatar.dart';
 import '../../../../shared/widgets/participant_avatar_stack.dart';
 import '../../../../shared/widgets/primary_button.dart';
+import '../../../auth/presentation/providers/auth_controller.dart';
+import '../../../households/domain/household.dart';
+import '../../../households/presentation/household_visuals.dart';
 import '../../../households/presentation/providers/household_providers.dart';
 import '../../../members/domain/member.dart';
 import '../../../members/presentation/providers/member_providers.dart';
@@ -21,6 +24,13 @@ import '../../domain/event.dart';
 import '../providers/event_providers.dart';
 
 enum _CalendarViewMode { month, week, day }
+
+String _visibilityLabel(EventVisibility visibility) => switch (visibility) {
+      EventVisibility.private => 'Private',
+      EventVisibility.household => 'Household',
+      EventVisibility.selectedHouseholds => 'Selected households',
+      EventVisibility.allMemberHouseholds => 'All my households',
+    };
 
 /// The member an event is displayed as belonging to, for color-coding and
 /// labeling — the first tagged participant when there is one, since the
@@ -658,6 +668,7 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
   late DateTime _endAt;
   late EventVisibility _visibility;
   late Set<int> _selectedParticipantIds;
+  late Set<int> _selectedHouseholdIds;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -666,6 +677,7 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
     super.initState();
     final existing = widget.existing;
     _selectedParticipantIds = existing?.participants.map((p) => p.id).toSet() ?? {};
+    _selectedHouseholdIds = existing?.sharedHouseholds.map((h) => h.id).toSet() ?? {};
     if (existing != null) {
       _titleController.text = existing.title;
       _descriptionController.text = existing.description ?? '';
@@ -755,6 +767,7 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
           endAt: _endAt,
           visibility: _visibility,
           participantMemberIds: _selectedParticipantIds.toList(),
+          sharedHouseholdIds: _selectedHouseholdIds.toList(),
         );
       } else {
         await repository.create(
@@ -766,6 +779,7 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
           endAt: _endAt,
           visibility: _visibility,
           participantMemberIds: _selectedParticipantIds.toList(),
+          sharedHouseholdIds: _selectedHouseholdIds.toList(),
         );
       }
       if (mounted) Navigator.of(context).pop(true);
@@ -803,6 +817,10 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
     final isEditing = widget.existing != null;
     final dateFormat = DateFormat('MMM d, y  •  h:mm a');
     final members = ref.watch(currentHouseholdMembersProvider).valueOrNull ?? const <Member>[];
+    final myHouseholds = ref.watch(authControllerProvider).user?.households ?? const <Household>[];
+    final otherHouseholds =
+        myHouseholds.where((h) => h.id != widget.householdId).toList();
+    final canShareAcrossHouseholds = otherHouseholds.isNotEmpty;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -838,22 +856,44 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
           ),
         ),
         const SizedBox(height: 16),
-        SegmentedButton<EventVisibility>(
-          segments: const [
-            ButtonSegment(
-              value: EventVisibility.household,
-              label: Text('Household'),
-              icon: Icon(LucideIcons.users),
-            ),
-            ButtonSegment(
-              value: EventVisibility.private,
-              label: Text('Private'),
-              icon: Icon(LucideIcons.lock),
-            ),
+        DropdownButtonFormField<EventVisibility>(
+          initialValue: _visibility,
+          decoration: const InputDecoration(labelText: 'Visibility'),
+          items: [
+            for (final visibility in EventVisibility.values)
+              if (visibility != EventVisibility.selectedHouseholds &&
+                      visibility != EventVisibility.allMemberHouseholds ||
+                  canShareAcrossHouseholds)
+                DropdownMenuItem(
+                  value: visibility,
+                  child: Text(_visibilityLabel(visibility)),
+                ),
           ],
-          selected: {_visibility},
-          onSelectionChanged: (selection) => setState(() => _visibility = selection.first),
+          onChanged: (value) {
+            if (value != null) setState(() => _visibility = value);
+          },
         ),
+        if (_visibility == EventVisibility.selectedHouseholds) ...[
+          const SizedBox(height: 16),
+          Text('Share with', style: Theme.of(context).textTheme.labelMedium),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final household in otherHouseholds)
+                _HouseholdShareChip(
+                  household: household,
+                  selected: _selectedHouseholdIds.contains(household.id),
+                  onTap: () => setState(() {
+                    if (!_selectedHouseholdIds.remove(household.id)) {
+                      _selectedHouseholdIds.add(household.id);
+                    }
+                  }),
+                ),
+            ],
+          ),
+        ],
         if (members.isNotEmpty) ...[
           const SizedBox(height: 16),
           Text('Participants', style: Theme.of(context).textTheme.labelMedium),
@@ -955,6 +995,58 @@ class _ParticipantChip extends StatelessWidget {
             style: Theme.of(context).textTheme.labelMedium,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A tappable chip for picking which of the user's *other* households a
+/// `selected_households` event is shared into — the same
+/// dimmed/checkmarked selection language as `_ParticipantChip`, one level
+/// up (a household, not a member).
+class _HouseholdShareChip extends StatelessWidget {
+  const _HouseholdShareChip({
+    required this.household,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Household household;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = householdColorFromHex(context, household.color);
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? color.withValues(alpha: 0.12) : null,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: selected ? color : context.colors.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(household.emoji ?? kHouseholdEmojis.first, style: const TextStyle(fontSize: 14)),
+            const SizedBox(width: 6),
+            Text(
+              household.name,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: selected ? color : context.colors.textPrimary,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  ),
+            ),
+            if (selected) ...[
+              const SizedBox(width: 6),
+              Icon(LucideIcons.checkCircle, size: 14, color: color),
+            ],
+          ],
+        ),
       ),
     );
   }

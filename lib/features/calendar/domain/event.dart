@@ -15,6 +15,20 @@ enum EventVisibility {
   }
 }
 
+/// The recurrence pattern a new event can be created with. Immutable once
+/// the event exists — there is no "edit the pattern" flow, only "edit this
+/// occurrence" or "edit this and following occurrences" (see
+/// [Event.isRecurring]).
+enum RecurrenceFrequency {
+  daily('daily'),
+  weekly('weekly'),
+  monthly('monthly');
+
+  const RecurrenceFrequency(this.value);
+
+  final String value;
+}
+
 /// A household member tagged as involved in an event — a denormalized
 /// slice of `Member`, not the full domain model, matching how `creatorName`
 /// is already denormalized onto [Event] rather than nesting a full Member.
@@ -52,6 +66,8 @@ class Event {
     required this.visibility,
     required this.participants,
     required this.sharedHouseholds,
+    required this.isRecurring,
+    this.recurrenceSummary,
   });
 
   final int id;
@@ -66,6 +82,8 @@ class Event {
   final EventVisibility visibility;
   final List<EventParticipant> participants;
   final List<Household> sharedHouseholds;
+  final bool isRecurring;
+  final String? recurrenceSummary;
 
   factory Event.fromJson(Map<String, dynamic> json) {
     return Event(
@@ -85,6 +103,8 @@ class Event {
       sharedHouseholds: (json['shared_households'] as List<dynamic>? ?? [])
           .map((h) => Household.fromJson(h as Map<String, dynamic>))
           .toList(),
+      isRecurring: json['is_recurring'] as bool? ?? false,
+      recurrenceSummary: json['recurrence_summary'] as String?,
     );
   }
 }

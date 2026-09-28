@@ -587,9 +587,21 @@ The calendar should query events through authorization-aware services rather tha
 > No event-card display change — visibility beyond private isn't
 > surfaced there.
 >
-> Recurring events are still not built — see `ROADMAP.md` → Phase 3 for
-> the deferred item, and `tayo-api`'s `ARCHITECTURE.md`/`ROADMAP.md` for
-> the multi-household query/authorization notes.
+> **Recurring events**: `EventRepository.create()` gains optional
+> `recurrenceFrequency`/`recurrenceInterval`/`recurrenceByDay`/
+> `recurrenceEndsAt`/`recurrenceOccurrenceCount` params, nested into a
+> `recurrence` map on the POST body only when a frequency is chosen —
+> `update()`/`delete()` never send it, since the API treats the pattern
+> as immutable after creation. `update()` gains `editScope` and
+> `delete()` gains `scope` (`'this'` default | `'following'`); the
+> add/edit sheet (`_AddEditEventSheet` in `calendar_screen.dart`) shows a
+> small "This event" / "This and following events" prompt before saving
+> or deleting whenever `existing.isRecurring` is true. The "Repeats"
+> section itself (frequency dropdown, interval, weekday chips, end
+> date/occurrence-count radio choice) only renders when creating a new
+> event, never when editing — there's no UI path to change a series'
+> pattern once it exists. See `tayo-api`'s `ARCHITECTURE.md`/`ROADMAP.md`
+> for the generation/cap/scope details on the API side.
 
 ---
 

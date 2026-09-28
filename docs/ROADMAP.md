@@ -324,10 +324,23 @@ sections are already in place.
       `all_member_households` (every household you belong to,
       automatically). A member belonging to more than one household sees
       the right subset of events in each.
+- [x] Recurring events — a "Repeats" section in the add-event sheet
+      (Daily/Weekly/Monthly, an interval, weekday toggles for weekly, and
+      an end date or occurrence count) shown only when creating a new
+      event. The pattern is immutable after creation: editing or deleting
+      an occurrence that belongs to a series prompts for "This event" or
+      "This and following events" before proceeding, rather than exposing
+      a way to change the recurrence rule itself. Event tiles show a
+      repeat icon with a short summary (e.g. "Repeats weekly on Mon,
+      Wed") when applicable.
 
 ## Deferred to a later increment
 
-- [ ] Recurring events
+- [ ] Editable recurrence patterns (currently create-only/immutable)
+- [ ] A true "all events" edit/delete scope beyond "this"/"this and
+      following"
+- [ ] Open-ended ("never ends") recurring series — every recurring event
+      today must specify an end date or occurrence count
 
 ## Visibility Options
 
@@ -340,12 +353,12 @@ All 4 implemented:
 
 ### Milestone
 
-Met for the non-recurring case: a family can use the app as its own
-household's shared calendar (create, edit, delete events; all 4
-visibility levels; Month/Week/Day views; color-coded by who owns each
-event; tag which members are involved and where; filter down to one or
-more members), and a member belonging to multiple households sees the
-right subset of events in each. Recurring events remain for a later pass.
+A family can use the app as its own household's shared calendar (create,
+edit, delete events; all 4 visibility levels; Month/Week/Day views;
+color-coded by who owns each event; tag which members are involved and
+where; filter down to one or more members; daily/weekly/monthly
+recurrence), and a member belonging to multiple households sees the
+right subset of events in each.
 
 ---
 

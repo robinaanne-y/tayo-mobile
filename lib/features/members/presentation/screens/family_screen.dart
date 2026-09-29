@@ -919,9 +919,15 @@ class _ShareLinkSheet extends StatelessWidget {
             child: QrImageView(
               data: link,
               size: 160,
+              // Fixed black-on-white regardless of app theme -- the
+              // surrounding container's background is deliberately always
+              // white (so the code stays scannable), but the ink color
+              // was following context.colors.textPrimary, which turns
+              // light in dark mode and became nearly invisible against
+              // that white background.
               backgroundColor: Colors.white,
-              eyeStyle: QrEyeStyle(color: context.colors.textPrimary),
-              dataModuleStyle: QrDataModuleStyle(color: context.colors.textPrimary),
+              eyeStyle: const QrEyeStyle(color: Colors.black),
+              dataModuleStyle: const QrDataModuleStyle(color: Colors.black),
             ),
           ),
         ),

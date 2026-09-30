@@ -15,7 +15,8 @@ import '../../../households/presentation/providers/household_providers.dart';
 import '../../domain/permission_request.dart';
 import '../providers/permission_request_providers.dart';
 
-String _statusLabel(RequestStatus status) => switch (status) {
+// Public (no leading underscore): reused by Home's notifications sheet.
+String statusLabel(RequestStatus status) => switch (status) {
       RequestStatus.pending => 'Pending',
       RequestStatus.approved => 'Approved',
       RequestStatus.declined => 'Declined',
@@ -23,7 +24,7 @@ String _statusLabel(RequestStatus status) => switch (status) {
       RequestStatus.expired => 'Expired',
     };
 
-Color _statusColor(BuildContext context, RequestStatus status) => switch (status) {
+Color statusColor(BuildContext context, RequestStatus status) => switch (status) {
       RequestStatus.pending => context.colors.accent,
       RequestStatus.approved => context.colors.primary,
       RequestStatus.declined => context.colors.error,
@@ -63,7 +64,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen> {
 
     await showAppBottomSheet<bool>(
       context: context,
-      builder: (context) => _RequestDetailSheet(householdId: household.id, request: request),
+      builder: (context) => RequestDetailSheet(householdId: household.id, request: request),
     );
 
     // Unconditional, not gated on a "changed" return value: opening this
@@ -97,7 +98,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen> {
                   children: [
                     for (final option in [null, ...RequestStatus.values]) ...[
                       _FilterChip(
-                        label: option == null ? 'All' : _statusLabel(option),
+                        label: option == null ? 'All' : statusLabel(option),
                         selected: _filter == option,
                         onTap: () => setState(() => _filter = option),
                       ),
@@ -206,7 +207,7 @@ class _RequestListTile extends StatelessWidget {
             width: 4,
             height: 40,
             decoration: BoxDecoration(
-              color: _statusColor(context, request.status),
+              color: statusColor(context, request.status),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -215,7 +216,7 @@ class _RequestListTile extends StatelessWidget {
             [
               request.requesterName,
               if (request.hasTimeWindow) dateFormat.format(request.requestedStartAt!),
-              _statusLabel(request.status),
+              statusLabel(request.status),
             ].join(' · '),
             style: Theme.of(context).textTheme.labelMedium,
           ),
@@ -229,7 +230,7 @@ class _RequestListTile extends StatelessWidget {
 /// still pending") mirrors the API policy's `actOnRequest`, using the
 /// same raw-string role comparison Home already uses (`myRole == 'owner'
 /// || myRole == 'adult'`) rather than introducing a new role helper.
-bool _canActOn(WidgetRef ref, PermissionRequest request) {
+bool canActOnRequest(WidgetRef ref, PermissionRequest request) {
   final household = ref.watch(currentHouseholdProvider);
   final myMemberId = ref.watch(authControllerProvider).user?.member?.id;
   final canManage = household?.myRole == 'owner' || household?.myRole == 'adult';
@@ -237,17 +238,19 @@ bool _canActOn(WidgetRef ref, PermissionRequest request) {
   return canManage && myMemberId != request.requesterMemberId && request.status == RequestStatus.pending;
 }
 
-class _RequestDetailSheet extends ConsumerStatefulWidget {
-  const _RequestDetailSheet({required this.householdId, required this.request});
+/// Public (no leading underscore): also opened from Home's notifications
+/// sheet, not just this screen's own list.
+class RequestDetailSheet extends ConsumerStatefulWidget {
+  const RequestDetailSheet({super.key, required this.householdId, required this.request});
 
   final int householdId;
   final PermissionRequest request;
 
   @override
-  ConsumerState<_RequestDetailSheet> createState() => _RequestDetailSheetState();
+  ConsumerState<RequestDetailSheet> createState() => _RequestDetailSheetState();
 }
 
-class _RequestDetailSheetState extends ConsumerState<_RequestDetailSheet> {
+class _RequestDetailSheetState extends ConsumerState<RequestDetailSheet> {
   final _responseNoteController = TextEditingController();
   final _conditionController = TextEditingController();
   bool _createEvent = false;
@@ -360,7 +363,7 @@ class _RequestDetailSheetState extends ConsumerState<_RequestDetailSheet> {
     final request = widget.request;
     final dateFormat = DateFormat('MMM d, y  •  h:mm a');
     final myMemberId = ref.watch(authControllerProvider).user?.member?.id;
-    final canAct = _canActOn(ref, request);
+    final canAct = canActOnRequest(ref, request);
     final isRequester = myMemberId == request.requesterMemberId;
 
     return Column(
@@ -370,11 +373,11 @@ class _RequestDetailSheetState extends ConsumerState<_RequestDetailSheet> {
         Text(request.title, style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 4),
         Text(
-          '${request.requesterName} · ${_statusLabel(request.status)}',
+          '${request.requesterName} · ${statusLabel(request.status)}',
           style: Theme.of(context)
               .textTheme
               .labelMedium
-              ?.copyWith(color: _statusColor(context, request.status)),
+              ?.copyWith(color: statusColor(context, request.status)),
         ),
         if (request.description != null && request.description!.isNotEmpty) ...[
           const SizedBox(height: 12),

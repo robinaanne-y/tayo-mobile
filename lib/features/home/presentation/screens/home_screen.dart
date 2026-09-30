@@ -30,6 +30,7 @@ import '../../../members/domain/member.dart';
 import '../../../members/presentation/providers/member_providers.dart';
 import '../../../requests/domain/permission_request.dart';
 import '../../../requests/presentation/providers/permission_request_providers.dart';
+import '../../../requests/presentation/screens/requests_screen.dart' show RequestDetailSheet;
 
 /// Base hues for note cards — a light tint is used as the background, a
 /// darker shade of the same hue as the border, so each note reads as one
@@ -183,12 +184,19 @@ class HomeScreen extends ConsumerWidget {
                       child: const Icon(LucideIcons.bell),
                     ),
                     tooltip: 'Notifications',
-                    // push, not go -- /requests is a top-level route
-                    // outside the bottom-nav shell, and go() replaces the
-                    // current location rather than stacking on top of it,
-                    // leaving no page to pop back to (no way back to Home,
-                    // and the system/gesture back button had nothing to do).
-                    onPressed: () => context.push('/requests'),
+                    // Opens a lightweight sheet scoped to what's relevant
+                    // to *this* viewer (see _NotificationsSheet) rather
+                    // than pushing the full Permissions/Requests screen,
+                    // which lists every household request regardless of
+                    // viewer -- the bell is "what needs my attention", the
+                    // Permissions tile is "browse/manage everything".
+                    onPressed: () async {
+                      final result = await showAppBottomSheet<String>(
+                        context: context,
+                        builder: (context) => const _NotificationsSheet(),
+                      );
+                      if (result == 'view-all' && context.mounted) context.push('/requests');
+                    },
                   ),
                   // A fixed max width (not Flexible/Expanded) so this pill
                   // doesn't compete for flex space with the greeting column
@@ -604,6 +612,125 @@ class _PendingRequestsSection extends ConsumerWidget {
         title: "Couldn't load requests",
         message: 'Pull to refresh or try again shortly.',
       ),
+    );
+  }
+}
+
+/// The header bell's target — a personal, scoped view of what needs this
+/// viewer's attention (mirrors `_attentionRequests`/`_PendingRequestsSection`
+/// above), as opposed to the "Permissions" tile which opens the full
+/// household-wide Requests management screen regardless of viewer. Pops
+/// with the string 'view-all' if the viewer wants that fuller screen
+/// instead — the caller (the bell's onPressed) pushes `/requests` for it,
+/// the same pop-then-caller-acts pattern `_HouseholdSwitcherSheet` uses.
+class _NotificationsSheet extends ConsumerWidget {
+  const _NotificationsSheet();
+
+  Future<void> _openDetail(BuildContext context, WidgetRef ref, int householdId, PermissionRequest request) async {
+    await showAppBottomSheet<bool>(
+      context: context,
+      builder: (context) => RequestDetailSheet(householdId: householdId, request: request),
+    );
+    // Unconditional for the same reason as RequestsScreen's own
+    // _openDetailSheet: viewing a resolved request silently acknowledges
+    // it, which this caller has no explicit signal for.
+    ref.invalidate(currentHouseholdRequestsProvider);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final requestsAsync = ref.watch(currentHouseholdRequestsProvider);
+    final household = ref.watch(currentHouseholdProvider);
+    final myMemberId = ref.watch(authControllerProvider).user?.member?.id;
+    final canManage = household?.myRole == 'owner' || household?.myRole == 'adult';
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Notifications', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 16),
+        requestsAsync.when(
+          data: (requests) {
+            final attention = _attentionRequests(requests, myMemberId: myMemberId, canManage: canManage);
+
+            if (attention.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Text(
+                  "You're all caught up.",
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              );
+            }
+
+            return Column(
+              children: [
+                for (final request in attention)
+                  InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: household == null
+                        ? null
+                        : () => _openDetail(context, ref, household.id, request),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Row(
+                        children: [
+                          Icon(
+                            request.status == RequestStatus.pending
+                                ? LucideIcons.shield
+                                : request.status == RequestStatus.approved
+                                    ? LucideIcons.checkCircle
+                                    : LucideIcons.xCircle,
+                            size: 18,
+                            color: context.colors.primary,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(request.title, style: Theme.of(context).textTheme.bodyMedium),
+                                Text(
+                                  request.status == RequestStatus.pending
+                                      ? request.requesterName
+                                      : request.status == RequestStatus.approved
+                                          ? 'Approved'
+                                          : 'Declined',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (error, stack) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Text(
+              "Couldn't load notifications.",
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: TextButton(
+            onPressed: () => Navigator.of(context).pop('view-all'),
+            child: const Text('View all requests'),
+          ),
+        ),
+      ],
     );
   }
 }

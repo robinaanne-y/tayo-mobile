@@ -10,22 +10,14 @@ final permissionRequestRepositoryProvider = Provider<PermissionRequestRepository
 });
 
 /// Every request in the current household, newest first — powers the full
-/// Requests list screen (with client-side status filtering via chips).
+/// Requests list screen (with client-side status filtering via chips) and
+/// Home's "Needs Your Attention" section / header bell badge, both of
+/// which need more than just pending ones (a resolved request the viewer
+/// hasn't acknowledged yet is also attention-worthy — see
+/// PermissionRequest.needsRequesterAttention).
 final currentHouseholdRequestsProvider = FutureProvider<List<PermissionRequest>>((ref) async {
   final household = ref.watch(currentHouseholdProvider);
   if (household == null) return const [];
 
   return ref.read(permissionRequestRepositoryProvider).list(householdId: household.id);
-});
-
-/// Pending requests only — powers Home's "Needs Your Attention" section and
-/// the header bell's badge count. Both filter this down further (client-
-/// side) to "requests I can act on" using the viewer's role/member id.
-final currentHouseholdPendingRequestsProvider = FutureProvider<List<PermissionRequest>>((ref) async {
-  final household = ref.watch(currentHouseholdProvider);
-  if (household == null) return const [];
-
-  return ref
-      .read(permissionRequestRepositoryProvider)
-      .list(householdId: household.id, status: RequestStatus.pending);
 });

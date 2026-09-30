@@ -113,6 +113,18 @@ class PermissionRequestRepository {
     );
   }
 
+  Future<PermissionRequest> acknowledge({
+    required int householdId,
+    required int requestId,
+  }) async {
+    final response = await _apiClient.post(
+      '/households/$householdId/requests/$requestId/acknowledge',
+    );
+    return PermissionRequest.fromJson(
+      (response.data as Map<String, dynamic>)['data'] as Map<String, dynamic>,
+    );
+  }
+
   Future<PermissionRequest> addCondition({
     required int householdId,
     required int requestId,

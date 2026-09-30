@@ -68,18 +68,24 @@ const _weekdayNames = [
   'Sunday',
 ];
 
-/// Pending requests the current viewer can act on — an Owner/Adult, and
-/// never their own request. Mirrors the API policy's `actOnRequest`, using
-/// the same raw-string role comparison already used elsewhere on this
-/// screen (`myRole == 'owner' || myRole == 'adult'`) rather than a new
-/// role helper.
-List<PermissionRequest> _actionableRequests(
-  List<PermissionRequest> pending, {
+/// Requests currently needing this viewer's attention — either a pending
+/// request they can act on (an Owner/Adult, never their own request;
+/// mirrors the API policy's `actOnRequest`, using the same raw-string role
+/// comparison already used elsewhere on this screen: `myRole == 'owner' ||
+/// myRole == 'adult'`), or one of their own requests that was just
+/// approved/declined and they haven't opened since (the API's
+/// viewer-relative `needs_requester_attention` field already does this
+/// check server-side, scoped to whoever the request was fetched as).
+List<PermissionRequest> _attentionRequests(
+  List<PermissionRequest> requests, {
   required int? myMemberId,
   required bool canManage,
 }) {
-  if (!canManage) return const [];
-  return pending.where((r) => r.requesterMemberId != myMemberId).toList();
+  return requests.where((r) {
+    final canActOnIt =
+        canManage && r.status == RequestStatus.pending && r.requesterMemberId != myMemberId;
+    return canActOnIt || r.needsRequesterAttention;
+  }).toList();
 }
 
 const _monthNames = [
@@ -128,9 +134,10 @@ class HomeScreen extends ConsumerWidget {
 
     final myMemberId = ref.watch(authControllerProvider).user?.member?.id;
     final canManage = household?.myRole == 'owner' || household?.myRole == 'adult';
-    final actionableCount = ref.watch(currentHouseholdPendingRequestsProvider).valueOrNull != null
-        ? _actionableRequests(
-            ref.watch(currentHouseholdPendingRequestsProvider).valueOrNull!,
+    final allRequests = ref.watch(currentHouseholdRequestsProvider).valueOrNull;
+    final actionableCount = allRequests != null
+        ? _attentionRequests(
+            allRequests,
             myMemberId: myMemberId,
             canManage: canManage,
           ).length
@@ -176,7 +183,12 @@ class HomeScreen extends ConsumerWidget {
                       child: const Icon(LucideIcons.bell),
                     ),
                     tooltip: 'Notifications',
-                    onPressed: () => context.go('/requests'),
+                    // push, not go -- /requests is a top-level route
+                    // outside the bottom-nav shell, and go() replaces the
+                    // current location rather than stacking on top of it,
+                    // leaving no page to pop back to (no way back to Home,
+                    // and the system/gesture back button had nothing to do).
+                    onPressed: () => context.push('/requests'),
                   ),
                   // A fixed max width (not Flexible/Expanded) so this pill
                   // doesn't compete for flex space with the greeting column
@@ -508,25 +520,28 @@ class _TodayEventTile extends StatelessWidget {
   }
 }
 
-/// Needs Your Attention: pending permission requests the viewer (an
-/// Owner/Adult, never the requester) can act on — backed by
-/// `households/{household}/requests?status=pending`. Tapping a row opens
-/// the same detail/approve/decline sheet the full Requests screen uses.
+/// Needs Your Attention: permission requests the viewer should look at —
+/// either a pending one they (an Owner/Adult, never the requester) can act
+/// on, or one of their own that was just approved/declined. Backed by the
+/// full `households/{household}/requests` list rather than a status
+/// filter, since the second category can be any status. Tapping a row
+/// opens the same detail sheet the full Requests screen uses, which also
+/// acknowledges a resolved request on open, clearing it from here.
 class _PendingRequestsSection extends ConsumerWidget {
   const _PendingRequestsSection();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final pendingAsync = ref.watch(currentHouseholdPendingRequestsProvider);
+    final requestsAsync = ref.watch(currentHouseholdRequestsProvider);
     final household = ref.watch(currentHouseholdProvider);
     final myMemberId = ref.watch(authControllerProvider).user?.member?.id;
     final canManage = household?.myRole == 'owner' || household?.myRole == 'adult';
 
-    return pendingAsync.when(
-      data: (pending) {
-        final actionable = _actionableRequests(pending, myMemberId: myMemberId, canManage: canManage);
+    return requestsAsync.when(
+      data: (requests) {
+        final attention = _attentionRequests(requests, myMemberId: myMemberId, canManage: canManage);
 
-        if (actionable.isEmpty) {
+        if (attention.isEmpty) {
           return const _EmptyStateCard(
             emoji: '✅',
             title: "You're all caught up",
@@ -537,16 +552,24 @@ class _PendingRequestsSection extends ConsumerWidget {
 
         return AppCard(
           padding: EdgeInsets.zero,
-          onTap: () => context.go('/requests'),
+          onTap: () => context.push('/requests'),
           child: Column(
             children: [
-              for (final entry in actionable.take(3).toList().asMap().entries) ...[
+              for (final entry in attention.take(3).toList().asMap().entries) ...[
                 if (entry.key > 0) const Divider(height: 1),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   child: Row(
                     children: [
-                      Icon(LucideIcons.shield, size: 18, color: context.colors.primary),
+                      Icon(
+                        entry.value.status == RequestStatus.pending
+                            ? LucideIcons.shield
+                            : entry.value.status == RequestStatus.approved
+                                ? LucideIcons.checkCircle
+                                : LucideIcons.xCircle,
+                        size: 18,
+                        color: context.colors.primary,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -554,7 +577,11 @@ class _PendingRequestsSection extends ConsumerWidget {
                           children: [
                             Text(entry.value.title, style: Theme.of(context).textTheme.bodyMedium),
                             Text(
-                              entry.value.requesterName,
+                              entry.value.status == RequestStatus.pending
+                                  ? entry.value.requesterName
+                                  : entry.value.status == RequestStatus.approved
+                                      ? 'Approved'
+                                      : 'Declined',
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                           ],
@@ -1309,7 +1336,7 @@ class _MoreRow extends StatelessWidget {
             icon: LucideIcons.shield,
             color: AppColors.skyBlue,
             label: 'Permissions',
-            onTap: () => context.go('/requests'),
+            onTap: () => context.push('/requests'),
           ),
         ),
         const SizedBox(width: 10),

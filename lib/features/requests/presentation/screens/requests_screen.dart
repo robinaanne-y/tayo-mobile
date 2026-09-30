@@ -54,7 +54,6 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen> {
 
     if (saved == true) {
       ref.invalidate(currentHouseholdRequestsProvider);
-      ref.invalidate(currentHouseholdPendingRequestsProvider);
     }
   }
 
@@ -62,15 +61,17 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen> {
     final household = ref.read(currentHouseholdProvider);
     if (household == null) return;
 
-    final changed = await showAppBottomSheet<bool>(
+    await showAppBottomSheet<bool>(
       context: context,
       builder: (context) => _RequestDetailSheet(householdId: household.id, request: request),
     );
 
-    if (changed == true) {
-      ref.invalidate(currentHouseholdRequestsProvider);
-      ref.invalidate(currentHouseholdPendingRequestsProvider);
-    }
+    // Unconditional, not gated on a "changed" return value: opening this
+    // sheet for a resolved-but-unacknowledged request silently
+    // acknowledges it (see _RequestDetailSheetState.initState), which the
+    // caller has no explicit signal for -- refreshing regardless is the
+    // simplest way to keep the bell badge/attention list in sync with that.
+    ref.invalidate(currentHouseholdRequestsProvider);
   }
 
   @override
@@ -252,6 +253,22 @@ class _RequestDetailSheetState extends ConsumerState<_RequestDetailSheet> {
   bool _createEvent = false;
   bool _isLoading = false;
   String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    // Opening this sheet is what "reads" a resolved request for its
+    // requester -- silently clear the notification the moment they see
+    // it, the same way opening a notification elsewhere marks it read.
+    // No loading state or error surface for this: it's a fire-and-forget
+    // side effect of viewing, not a user-initiated action.
+    if (widget.request.needsRequesterAttention) {
+      ref.read(permissionRequestRepositoryProvider).acknowledge(
+            householdId: widget.householdId,
+            requestId: widget.request.id,
+          );
+    }
+  }
 
   @override
   void dispose() {

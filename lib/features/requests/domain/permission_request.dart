@@ -55,6 +55,7 @@ class PermissionRequest {
     required this.conditions,
     required this.promotedEventId,
     required this.isOverdue,
+    required this.needsRequesterAttention,
   });
 
   final int id;
@@ -73,6 +74,7 @@ class PermissionRequest {
   final List<RequestCondition> conditions;
   final int? promotedEventId;
   final bool isOverdue;
+  final bool needsRequesterAttention;
 
   bool get hasTimeWindow => requestedStartAt != null && requestedEndAt != null;
 
@@ -102,6 +104,7 @@ class PermissionRequest {
           .toList(),
       promotedEventId: json['promoted_event_id'] as int?,
       isOverdue: json['is_overdue'] as bool? ?? false,
+      needsRequesterAttention: json['needs_requester_attention'] as bool? ?? false,
     );
   }
 }

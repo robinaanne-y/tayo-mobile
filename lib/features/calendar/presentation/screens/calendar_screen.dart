@@ -708,7 +708,12 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
   // exists, so none of this is read from `widget.existing`.
   RecurrenceFrequency? _recurrenceFrequency;
   Set<int> _recurrenceByDay = {};
-  _RecurrenceEndMode _recurrenceEndMode = _RecurrenceEndMode.onDate;
+  // Defaults to afterCount (paired with the occurrence-count field's own
+  // default of 4) rather than onDate, since onDate has no valid value
+  // until the date picker is actually completed -- defaulting to it left
+  // "Add event" reachable with an end mode selected but no date behind
+  // it, if the user never opened the picker at all.
+  _RecurrenceEndMode _recurrenceEndMode = _RecurrenceEndMode.afterCount;
   DateTime? _recurrenceEndsAt;
 
   @override
@@ -1036,10 +1041,19 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
             const SizedBox(height: 8),
             InkWell(
               onTap: () async {
-                setState(() => _recurrenceEndMode = _RecurrenceEndMode.onDate);
+                // Set a valid default the moment this mode is chosen, not
+                // only once the picker below resolves -- if the user
+                // dismisses the picker without picking a date, this mode
+                // still has a usable value instead of silently reverting
+                // to "selected but empty" (see the initial-value comment
+                // on _recurrenceEndMode above).
+                setState(() {
+                  _recurrenceEndMode = _RecurrenceEndMode.onDate;
+                  _recurrenceEndsAt ??= _startAt.add(const Duration(days: 30));
+                });
                 final date = await showDatePicker(
                   context: context,
-                  initialDate: _recurrenceEndsAt ?? _startAt.add(const Duration(days: 30)),
+                  initialDate: _recurrenceEndsAt!,
                   firstDate: _startAt,
                   lastDate: DateTime.now().add(const Duration(days: 1825)),
                 );

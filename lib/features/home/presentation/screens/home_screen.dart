@@ -632,6 +632,7 @@ class _TodayEventTile extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               event.title,

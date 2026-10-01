@@ -5,16 +5,18 @@
 > activation, user profile editing, household switching, member profile
 > editing, household profile settings) is fully implemented. Phase 2 (Home
 > & Family Feed) is in progress — the Home screen layout, Family Notes,
-> Announcements, Today's Schedule, and "Needs Your Attention" (Phase 4's
-> permission requests) are real; the rest of the feed is an honest empty
-> state until Phases 5-7 land. The app's color system was overhauled and a
-> real Light/Dark/System theme mode shipped (toggle in Profile →
-> Appearance) — see `ARCHITECTURE.md` §25 "Foundation note — Theming".
-> Phase 3 is fully done (event CRUD, Month/Week/Day views, all 4
-> visibility levels, participants, location, daily/weekly/monthly
-> recurrence). Phase 4's permission requests are done (meal requests are
-> Phase 5). See `ARCHITECTURE.md` → "Foundation Implementation Notes" for
-> exactly what exists today and how to run it.
+> Announcements, Today's Schedule, "Needs Your Attention" (permission +
+> meal requests), Today's Meals, and Groceries are real; the rest of the
+> feed (trips) is an honest empty state until Phase 7 lands. The app's
+> color system was overhauled and a real Light/Dark/System theme mode
+> shipped (toggle in Profile → Appearance) — see `ARCHITECTURE.md` §25
+> "Foundation note — Theming". Phase 3 is fully done (event CRUD,
+> Month/Week/Day views, all 4 visibility levels, participants, location,
+> daily/weekly/monthly recurrence). Phase 4 (permission requests) and
+> Phase 5 (meal planning, meal requests, shared grocery list) are both
+> done — **this is the mobile MVP line**. See `ARCHITECTURE.md` →
+> "Foundation Implementation Notes" for exactly what exists today and how
+> to run it.
 
 ## 1. Product Vision
 
@@ -217,10 +219,11 @@ real API and is reflected back on the Family screen.
 - [x] Announcements (create, list, delete — Owner/Adult post, anyone reads)
 - [ ] Reminders (Phase 9 — read-through of other modules' due dates, no
       dedicated table)
-- [ ] Pending requests / "Needs Your Attention" (Home section redesigned
-      with an honest "all caught up" empty state; real data is Phase 4)
-- [ ] Today's meal (Home UI redesigned; data is Phase 5)
-- [ ] Grocery summary (Home UI redesigned; data is Phase 5/6)
+- [x] Pending requests / "Needs Your Attention" (real data from Phase 4's
+      permission requests and Phase 5's meal requests, normalized into one
+      combined list)
+- [x] Today's meal (real data, Phase 5)
+- [x] Grocery summary (real data, Phase 5)
 - [ ] Upcoming trip summary (data is Phase 7)
 - [x] Household status (member avatars row — shipped earlier alongside
       household switching)
@@ -409,41 +412,30 @@ Adults can:
 ### Milestone
 
 The app facilitates family decisions, not just information sharing. Met
-for permission requests; meal requests are Phase 5.
+for both permission requests and meal requests (Phase 5).
 
 ---
 
-# Phase 5 — Meals & Groceries
+# Phase 5 — Meals & Groceries — ✅ Done
 
 ## Meal Planning
 
-Adults can create weekly meal plans.
-
-Example:
-
-```text
-MONDAY
-Breakfast — Eggs
-Lunch — Chicken Adobo
-Dinner — Sinigang
-
-TUESDAY
-Breakfast — Pancakes
-Lunch — Leftovers
-Dinner — Spaghetti
-```
-
-Everyone can view the plan.
+Owners/Adults set a meal for any day's fixed Breakfast/Lunch/Dinner slot
+(`MealsScreen`'s week strip + three slot cards); everyone can view the
+plan, and non-adults get a "Request this meal" flow instead of a direct
+edit. Weeks aren't grouped behind a parent object client-side either — the
+screen just queries a date range, matching the API's no-`meal_plans`-table
+decision (see `tayo-api`'s `docs/ROADMAP.md` Phase 5 for why).
 
 ## Grocery List
 
-- Shared grocery list
-- Add items
-- Quantity
-- Categories
-- Added by
-- Purchased status
-- Shopping mode
+- Shared grocery list — any member (including minors) can add, edit,
+  purchase, or remove any item, deliberately more permissive than meal
+  plans since the stakes are low and full collaboration is the point.
+- Add items with quantity, unit, category
+- Added-by shown per item
+- Purchased status, with purchased items collapsed to the bottom
+- Shopping mode is just checking items off — no separate mode toggle
 
 ## Future Meal → Grocery Integration
 
@@ -459,7 +451,7 @@ Ingredients
 Grocery List
 ```
 
-Do not build the recipe engine in the first MVP.
+Did not build the recipe engine in this MVP, per the plan above.
 
 ### Milestone
 
@@ -470,6 +462,8 @@ The family can answer:
 and:
 
 > **What do we need to buy?**
+
+Met.
 
 ---
 
@@ -729,7 +723,7 @@ The application has a sustainable monetization model based on household value ra
 | 2 | Home + Family Feed | Critical | Core |
 | 3 | Calendar + Scheduling | Critical | Core |
 | 4 | Family Requests | Critical | Core |
-| 5 | Meals + Groceries | Critical | **MVP** |
+| 5 | Meals + Groceries | Critical | **MVP** ✅ |
 | 6 | Tasks + Chores | High | V1.1 |
 | 7 | Trips + Events | High | V1.2 |
 | 8 | Family Map + Location | Medium | V1.3 |

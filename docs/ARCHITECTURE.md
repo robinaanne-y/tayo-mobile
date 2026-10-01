@@ -1704,7 +1704,7 @@ Docker. The automated test suite always uses in-memory sqlite regardless
 (configured in `phpunit.xml`), so `php artisan test` works with zero setup
 either way.
 
-Run tests: `php artisan test` (61 passing).
+Run tests: `php artisan test` (151 passing).
 
 ## Flutter setup
 
@@ -1756,11 +1756,20 @@ Run tests: `flutter test` (5 passing). Static analysis: `flutter analyze`
 - Permission requests: create/edit/cancel, adult approve/decline with
   conditions, optional promotion to a calendar event, surfaced on Home
   and via the header bell — see §12 "Foundation note"
+- Meal planning: Owner/Adult sets/clears any day's Breakfast/Lunch/Dinner
+  slot; meal requests (any member requests, adult approves/declines,
+  optionally moved to another day/slot) reuse the same `Approvable`
+  mechanics as permission requests; shared grocery list fully open to
+  every household member including minors. Today's Meals and Groceries
+  on Home are real data, and meal requests needing the viewer's attention
+  are folded into the same header-bell sheet as permission requests —
+  this is the mobile MVP-complete line (Phase 5)
 
 ## What's deliberately not implemented yet
 
 - `/api/v1/home` aggregation endpoint (Phase 2)
 - Richer household profile/settings (avatar, timezone, etc. — no mobile
   UI defined yet)
-- Everything from Calendar onward (Phase 3+)
+- Everything past the MVP line: Tasks/Chores, Trips, Family Map,
+  Realtime/Automation, Monetization (Phase 6+)
 - CI pipeline for either project (both are now git repositories)

@@ -523,11 +523,11 @@ class _MealActionPill extends StatelessWidget {
         backgroundColor: background,
         foregroundColor: foreground,
         elevation: 0,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         minimumSize: Size.zero,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-        textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+        textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
       ),
       child: Text(label),
     );

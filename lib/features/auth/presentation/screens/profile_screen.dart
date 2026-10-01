@@ -87,17 +87,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     segments: const [
                       ButtonSegment(
                         value: ThemeMode.light,
-                        label: Text('Light'),
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('Light', maxLines: 1, softWrap: false),
+                        ),
                         icon: Icon(LucideIcons.sun, size: 16),
                       ),
                       ButtonSegment(
                         value: ThemeMode.dark,
-                        label: Text('Dark'),
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('Dark', maxLines: 1, softWrap: false),
+                        ),
                         icon: Icon(LucideIcons.moon, size: 16),
                       ),
                       ButtonSegment(
                         value: ThemeMode.system,
-                        label: Text('System'),
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('System', maxLines: 1, softWrap: false),
+                        ),
                         icon: Icon(LucideIcons.monitor, size: 16),
                       ),
                     ],

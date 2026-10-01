@@ -74,103 +74,157 @@ const _weekdayNames = [
   'Sunday',
 ];
 
+/// Mirrors `MealsScreen`'s own `_canManageMeals`: when the household has
+/// designated a meal approver, that one member fully replaces the role
+/// check, so a plain Owner/Adult who isn't the approver must NOT be shown
+/// as able to act on a meal request here either.
+bool _canManageMealsFor(Household? household, int? myMemberId) {
+  if (household == null) return false;
+  final approverId = household.mealApproverMemberId;
+  if (approverId != null) return myMemberId == approverId;
+  return household.myRole == 'owner' || household.myRole == 'adult';
+}
+
 /// A normalized "needs my attention" row — permission requests and meal
 /// requests have different domain models and detail sheets, but Home shows
 /// them in one combined list (the bell sheet, "Needs Your Attention"), so
 /// each gets mapped to this shape rather than merging the two models.
+/// `onApprove`/`onDecline` are null for a row the viewer can't act on (it's
+/// their own request, surfaced only so they notice the outcome) — the card
+/// then shows a single "Review" affordance instead of the three-button row.
 class _AttentionItem {
   const _AttentionItem({
-    required this.title,
-    required this.subtitle,
     required this.icon,
-    required this.onTap,
+    required this.iconBackground,
+    required this.description,
+    required this.onReview,
+    this.onApprove,
+    this.onDecline,
   });
 
-  final String title;
-  final String subtitle;
   final IconData icon;
-  final Future<void> Function(BuildContext context, WidgetRef ref) onTap;
+  final Color iconBackground;
+  final String description;
+  final Future<void> Function(BuildContext context, WidgetRef ref) onReview;
+  final Future<void> Function(BuildContext context, WidgetRef ref)? onApprove;
+  final Future<void> Function(BuildContext context, WidgetRef ref)? onDecline;
+
+  bool get canAct => onApprove != null && onDecline != null;
 }
 
-String _attentionSubtitle(RequestStatus status, String requesterName) => switch (status) {
-      RequestStatus.pending => requesterName,
-      RequestStatus.approved => 'Approved',
-      RequestStatus.declined => 'Declined',
-      RequestStatus.cancelled => 'Cancelled',
-      RequestStatus.expired => 'Expired',
-    };
+_AttentionItem _permissionAttentionItem(PermissionRequest request, {required bool canActOnIt}) {
+  Future<void> review(BuildContext context, WidgetRef ref) async {
+    final household = ref.read(currentHouseholdProvider);
+    if (household == null) return;
+    await showAppBottomSheet<bool>(
+      context: context,
+      builder: (context) => RequestDetailSheet(householdId: household.id, request: request),
+    );
+    // Unconditional: viewing a resolved request silently acknowledges it,
+    // which this caller has no explicit signal for.
+    ref.invalidate(currentHouseholdRequestsProvider);
+  }
 
-IconData _attentionIcon(RequestStatus status) => switch (status) {
-      RequestStatus.pending => LucideIcons.shield,
-      RequestStatus.approved => LucideIcons.checkCircle,
-      RequestStatus.declined => LucideIcons.xCircle,
-      RequestStatus.cancelled => LucideIcons.xCircle,
-      RequestStatus.expired => LucideIcons.xCircle,
-    };
+  Future<void> respond(WidgetRef ref, {required bool approve}) async {
+    final household = ref.read(currentHouseholdProvider);
+    if (household == null) return;
+    final repository = ref.read(permissionRequestRepositoryProvider);
+    if (approve) {
+      await repository.approve(householdId: household.id, requestId: request.id);
+    } else {
+      await repository.decline(householdId: household.id, requestId: request.id);
+    }
+    ref.invalidate(currentHouseholdRequestsProvider);
+  }
 
-_AttentionItem _permissionAttentionItem(PermissionRequest request) {
+  final description = request.status == RequestStatus.pending
+      ? '${request.requesterName} requested permission for "${request.title}"'
+      : 'Your request "${request.title}" was '
+          '${request.status == RequestStatus.approved ? 'approved' : 'declined'}';
+
   return _AttentionItem(
-    title: request.title,
-    subtitle: _attentionSubtitle(request.status, request.requesterName),
-    icon: _attentionIcon(request.status),
-    onTap: (context, ref) async {
-      final household = ref.read(currentHouseholdProvider);
-      if (household == null) return;
-      await showAppBottomSheet<bool>(
-        context: context,
-        builder: (context) => RequestDetailSheet(householdId: household.id, request: request),
-      );
-      // Unconditional: viewing a resolved request silently acknowledges it,
-      // which this caller has no explicit signal for.
-      ref.invalidate(currentHouseholdRequestsProvider);
-    },
+    icon: LucideIcons.shield,
+    iconBackground: AppColors.coral,
+    description: description,
+    onReview: review,
+    onApprove: canActOnIt ? (context, ref) => respond(ref, approve: true) : null,
+    onDecline: canActOnIt ? (context, ref) => respond(ref, approve: false) : null,
   );
 }
 
-_AttentionItem _mealAttentionItem(MealRequest request) {
+_AttentionItem _mealAttentionItem(MealRequest request, {required bool canActOnIt}) {
+  Future<void> review(BuildContext context, WidgetRef ref) async {
+    final household = ref.read(currentHouseholdProvider);
+    if (household == null) return;
+    await showAppBottomSheet<bool>(
+      context: context,
+      builder: (context) => MealRequestDetailSheet(householdId: household.id, request: request),
+    );
+    ref.invalidate(currentHouseholdMealRequestsProvider);
+    // Approving can create/update a meal plan item for today.
+    ref.invalidate(currentHouseholdTodaysMealsProvider);
+  }
+
+  Future<void> respond(WidgetRef ref, {required bool approve}) async {
+    final household = ref.read(currentHouseholdProvider);
+    if (household == null) return;
+    final repository = ref.read(mealRequestRepositoryProvider);
+    if (approve) {
+      await repository.approve(householdId: household.id, requestId: request.id);
+    } else {
+      await repository.decline(householdId: household.id, requestId: request.id);
+    }
+    ref.invalidate(currentHouseholdMealRequestsProvider);
+    ref.invalidate(currentHouseholdTodaysMealsProvider);
+  }
+
+  final description = request.status == RequestStatus.pending
+      ? '${request.requesterName} requested ${request.title} for '
+          '${_homeMealSlotLabel(request.requestedSlot).toLowerCase()}'
+      : 'Your meal request "${request.title}" was '
+          '${request.status == RequestStatus.approved ? 'approved' : 'declined'}';
+
   return _AttentionItem(
-    title: request.title,
-    subtitle: _attentionSubtitle(request.status, request.requesterName),
     icon: LucideIcons.utensils,
-    onTap: (context, ref) async {
-      final household = ref.read(currentHouseholdProvider);
-      if (household == null) return;
-      await showAppBottomSheet<bool>(
-        context: context,
-        builder: (context) => MealRequestDetailSheet(householdId: household.id, request: request),
-      );
-      ref.invalidate(currentHouseholdMealRequestsProvider);
-      // Approving can create/update a meal plan item for today.
-      ref.invalidate(currentHouseholdTodaysMealsProvider);
-    },
+    iconBackground: AppColors.lavender,
+    description: description,
+    onReview: review,
+    onApprove: canActOnIt ? (context, ref) => respond(ref, approve: true) : null,
+    onDecline: canActOnIt ? (context, ref) => respond(ref, approve: false) : null,
   );
 }
 
 /// Combines permission requests and meal requests currently needing this
-/// viewer's attention — either a pending one they can act on (an
-/// Owner/Adult, never their own request; mirrors the API policy's
-/// `actOnRequest`/`actOnMealRequest`), or one of their own that was just
-/// approved/declined and they haven't opened since (the API's
-/// viewer-relative `needs_requester_attention` field already does this
-/// check server-side).
+/// viewer's attention — either a pending one they can act on, or one of
+/// their own that was just approved/declined and they haven't opened since
+/// (the API's viewer-relative `needs_requester_attention` field already
+/// does this check server-side). Permission requests and meal requests use
+/// different "can manage" rules (meal requests respect a per-household
+/// approver override — see `_canManageMealsFor`), so each list is checked
+/// against its own flag rather than one shared one.
 List<_AttentionItem> _combinedAttentionItems({
   required List<PermissionRequest> permissionRequests,
   required List<MealRequest> mealRequests,
   required int? myMemberId,
-  required bool canManage,
+  required bool canManagePermissions,
+  required bool canManageMeals,
 }) {
   final items = <_AttentionItem>[];
 
   for (final r in permissionRequests) {
     final canActOnIt =
-        canManage && r.status == RequestStatus.pending && r.requesterMemberId != myMemberId;
-    if (canActOnIt || r.needsRequesterAttention) items.add(_permissionAttentionItem(r));
+        canManagePermissions && r.status == RequestStatus.pending && r.requesterMemberId != myMemberId;
+    if (canActOnIt || r.needsRequesterAttention) {
+      items.add(_permissionAttentionItem(r, canActOnIt: canActOnIt));
+    }
   }
 
   for (final r in mealRequests) {
     final canActOnIt =
-        canManage && r.status == RequestStatus.pending && r.requesterMemberId != myMemberId;
-    if (canActOnIt || r.needsRequesterAttention) items.add(_mealAttentionItem(r));
+        canManageMeals && r.status == RequestStatus.pending && r.requesterMemberId != myMemberId;
+    if (canActOnIt || r.needsRequesterAttention) {
+      items.add(_mealAttentionItem(r, canActOnIt: canActOnIt));
+    }
   }
 
   return items;
@@ -228,7 +282,8 @@ class HomeScreen extends ConsumerWidget {
       permissionRequests: allRequests ?? const [],
       mealRequests: allMealRequests ?? const [],
       myMemberId: myMemberId,
-      canManage: canManage,
+      canManagePermissions: canManage,
+      canManageMeals: _canManageMealsFor(household, myMemberId),
     ).length;
 
     return Scaffold(
@@ -566,9 +621,15 @@ class _TodayEventTile extends StatelessWidget {
         children: [
           SizedBox(
             width: 64,
-            child: Text(
-              DateFormat.jm().format(event.startAt),
-              style: Theme.of(context).textTheme.bodySmall,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                DateFormat.jm().format(event.startAt),
+                maxLines: 1,
+                softWrap: false,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ),
           ),
           Expanded(
@@ -785,11 +846,11 @@ class _GroceriesSection extends ConsumerWidget {
 }
 
 /// Needs Your Attention: permission requests AND meal requests the viewer
-/// should look at — either a pending one they (an Owner/Adult, never the
-/// requester) can act on, or one of their own that was just
-/// approved/declined. Tapping the card opens the full Requests screen;
-/// unlike the bell sheet, individual rows here aren't independently
-/// tappable, since this section is a glanceable preview capped at 3 items.
+/// should look at, each its own single-row card with inline Approve/
+/// Review/Decline actions — not grouped inside one card whose whole area
+/// used to navigate to the (permission-only) Requests screen regardless of
+/// which item, or what type, was actually tapped. A capped-at-3 preview;
+/// "See all" (added below once there are more) would go to the full list.
 class _PendingRequestsSection extends ConsumerWidget {
   const _PendingRequestsSection();
 
@@ -820,7 +881,8 @@ class _PendingRequestsSection extends ConsumerWidget {
       permissionRequests: requestsAsync.valueOrNull ?? const [],
       mealRequests: mealRequestsAsync.valueOrNull ?? const [],
       myMemberId: myMemberId,
-      canManage: canManage,
+      canManagePermissions: canManage,
+      canManageMeals: _canManageMealsFor(household, myMemberId),
     );
 
     if (attention.isEmpty) {
@@ -832,34 +894,123 @@ class _PendingRequestsSection extends ConsumerWidget {
       );
     }
 
-    return AppCard(
-      padding: EdgeInsets.zero,
-      onTap: () => context.push('/requests'),
+    return Column(
+      children: [
+        for (final item in attention.take(3)) ...[
+          _AttentionItemCard(item: item),
+          const SizedBox(height: 10),
+        ],
+      ],
+    );
+  }
+}
+
+/// A single "needs your attention" row: an icon avatar, the description
+/// sentence, and either a three-button Approve/Review/Decline row (when
+/// the viewer can act) or a single Review button (the viewer's own
+/// request, surfaced just so they notice the outcome).
+class _AttentionItemCard extends ConsumerWidget {
+  const _AttentionItemCard({required this.item});
+
+  final _AttentionItem item;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: context.colors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.colors.border),
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final entry in attention.take(3).toList().asMap().entries) ...[
-            if (entry.key > 0) const Divider(height: 1),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  Icon(entry.value.icon, size: 18, color: context.colors.primary),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(entry.value.title, style: Theme.of(context).textTheme.bodyMedium),
-                        Text(entry.value.subtitle, style: Theme.of(context).textTheme.bodySmall),
-                      ],
-                    ),
-                  ),
-                ],
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: item.iconBackground.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(item.icon, size: 16, color: item.iconBackground),
               ),
-            ),
-          ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(item.description, style: Theme.of(context).textTheme.bodyMedium),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              if (item.canAct) ...[
+                _AttentionPillButton(
+                  label: 'Approve',
+                  background: context.colors.primary,
+                  foreground: context.colors.primaryForeground,
+                  onPressed: () => item.onApprove!(context, ref),
+                ),
+                const SizedBox(width: 8),
+              ],
+              _AttentionPillButton(
+                label: 'Review',
+                background: context.colors.primary.withValues(alpha: 0.12),
+                foreground: context.colors.primary,
+                onPressed: () => item.onReview(context, ref),
+              ),
+              if (item.canAct) ...[
+                const SizedBox(width: 8),
+                _AttentionPillButton(
+                  label: 'Decline',
+                  background: context.colors.error.withValues(alpha: 0.12),
+                  foreground: context.colors.error,
+                  onPressed: () => item.onDecline!(context, ref),
+                ),
+              ],
+            ],
+          ),
         ],
       ),
+    );
+  }
+}
+
+class _AttentionPillButton extends StatelessWidget {
+  const _AttentionPillButton({
+    required this.label,
+    required this.background,
+    required this.foreground,
+    required this.onPressed,
+  });
+
+  final String label;
+  final Color background;
+  final Color foreground;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: background,
+        foregroundColor: foreground,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+        textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+      ),
+      child: Text(label),
     );
   }
 }
@@ -882,6 +1033,7 @@ class _NotificationsSheet extends ConsumerWidget {
     final household = ref.watch(currentHouseholdProvider);
     final myMemberId = ref.watch(authControllerProvider).user?.member?.id;
     final canManage = household?.myRole == 'owner' || household?.myRole == 'adult';
+    final canManageMeals = _canManageMealsFor(household, myMemberId);
 
     final isLoading = requestsAsync.isLoading || mealRequestsAsync.isLoading;
     final hasError = requestsAsync.hasError || mealRequestsAsync.hasError;
@@ -912,7 +1064,8 @@ class _NotificationsSheet extends ConsumerWidget {
                 permissionRequests: requestsAsync.valueOrNull ?? const [],
                 mealRequests: mealRequestsAsync.valueOrNull ?? const [],
                 myMemberId: myMemberId,
-                canManage: canManage,
+                canManagePermissions: canManage,
+                canManageMeals: canManageMeals,
               );
 
               if (attention.isEmpty) {
@@ -928,29 +1081,10 @@ class _NotificationsSheet extends ConsumerWidget {
 
               return Column(
                 children: [
-                  for (final item in attention)
-                    InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () => item.onTap(context, ref),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: Row(
-                          children: [
-                            Icon(item.icon, size: 18, color: context.colors.primary),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(item.title, style: Theme.of(context).textTheme.bodyMedium),
-                                  Text(item.subtitle, style: Theme.of(context).textTheme.bodySmall),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                  for (final item in attention) ...[
+                    _AttentionItemCard(item: item),
+                    const SizedBox(height: 10),
+                  ],
                 ],
               );
             },

@@ -811,9 +811,10 @@ class _GroceriesSection extends ConsumerWidget {
             }
 
             final unpurchased = items.where((i) => !i.isPurchased).toList();
+            final categories = unpurchased.map((i) => i.category).whereType<String>().toSet().toList();
             const maxTags = 5;
-            final shownNames = unpurchased.take(maxTags).map((i) => i.name).toList();
-            final remaining = unpurchased.length - shownNames.length;
+            final shownCategories = categories.take(maxTags).toList();
+            final remaining = categories.length - shownCategories.length;
 
             return AppCard(
               onTap: () => context.go('/groceries'),
@@ -835,13 +836,13 @@ class _GroceriesSection extends ConsumerWidget {
                       Icon(LucideIcons.chevronRight, size: 18, color: context.colors.textSecondary),
                     ],
                   ),
-                  if (shownNames.isNotEmpty) ...[
+                  if (shownCategories.isNotEmpty) ...[
                     const SizedBox(height: 10),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        for (final name in shownNames) _GroceryTag(label: name),
+                        for (final category in shownCategories) _GroceryTag(label: category),
                         if (remaining > 0) _GroceryTag(label: '+$remaining more'),
                       ],
                     ),

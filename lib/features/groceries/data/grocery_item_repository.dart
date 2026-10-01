@@ -65,4 +65,8 @@ class GroceryItemRepository {
   Future<void> delete({required int householdId, required int itemId}) async {
     await _apiClient.delete('/households/$householdId/grocery-items/$itemId');
   }
+
+  Future<void> clearPurchased({required int householdId}) async {
+    await _apiClient.post('/households/$householdId/grocery-items/clear-purchased');
+  }
 }

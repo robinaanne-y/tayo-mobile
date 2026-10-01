@@ -1,3 +1,20 @@
+/// A fixed vocabulary rather than free text, so the same values can drive
+/// both the add/edit sheet's dropdown and the list's filter chips. Plain
+/// strings, not an enum -- the API's `category` column is already a free
+/// string with no server-side validation, so there's no mapping to do.
+const List<String> kGroceryCategories = [
+  'Produce',
+  'Meat',
+  'Dairy',
+  'Pantry',
+  'Toiletries',
+  'Bakery',
+  'Frozen',
+  'Beverages',
+  'Household',
+  'Other',
+];
+
 class GroceryItem {
   const GroceryItem({
     required this.id,

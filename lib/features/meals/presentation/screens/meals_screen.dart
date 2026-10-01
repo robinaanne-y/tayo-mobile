@@ -235,7 +235,7 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
                       foregroundColor: context.colors.primaryForeground,
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),

@@ -952,27 +952,33 @@ class _AttentionItemCard extends ConsumerWidget {
           Row(
             children: [
               if (item.canAct) ...[
-                _AttentionPillButton(
-                  label: 'Approve',
-                  background: context.colors.primary,
-                  foreground: context.colors.primaryForeground,
-                  onPressed: () => item.onApprove!(context, ref),
+                Expanded(
+                  child: _AttentionPillButton(
+                    label: 'Approve',
+                    background: context.colors.primary,
+                    foreground: context.colors.primaryForeground,
+                    onPressed: () => item.onApprove!(context, ref),
+                  ),
                 ),
                 const SizedBox(width: 8),
               ],
-              _AttentionPillButton(
-                label: 'Review',
-                background: context.colors.primary.withValues(alpha: 0.12),
-                foreground: context.colors.primary,
-                onPressed: () => item.onReview(context, ref),
+              Expanded(
+                child: _AttentionPillButton(
+                  label: 'Review',
+                  background: context.colors.primary.withValues(alpha: 0.12),
+                  foreground: context.colors.primary,
+                  onPressed: () => item.onReview(context, ref),
+                ),
               ),
               if (item.canAct) ...[
                 const SizedBox(width: 8),
-                _AttentionPillButton(
-                  label: 'Decline',
-                  background: context.colors.error.withValues(alpha: 0.12),
-                  foreground: context.colors.error,
-                  onPressed: () => item.onDecline!(context, ref),
+                Expanded(
+                  child: _AttentionPillButton(
+                    label: 'Decline',
+                    background: context.colors.error.withValues(alpha: 0.12),
+                    foreground: context.colors.error,
+                    onPressed: () => item.onDecline!(context, ref),
+                  ),
                 ),
               ],
             ],
@@ -1004,13 +1010,16 @@ class _AttentionPillButton extends StatelessWidget {
         backgroundColor: background,
         foregroundColor: foreground,
         elevation: 0,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         minimumSize: Size.zero,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-        textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+        textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
       ),
-      child: Text(label),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(label, maxLines: 1, softWrap: false),
+      ),
     );
   }
 }

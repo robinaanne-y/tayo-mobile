@@ -13,9 +13,7 @@ import '../../domain/grocery_item.dart';
 import '../providers/grocery_providers.dart';
 
 /// A bottom-nav tab (like Calendar/Meals), not a pushed route -- no back
-/// arrow. Unlike Calendar/Meals' neutral `surface` headers, this is the
-/// app's first saturated-color header (solid `primary`), per the user's
-/// reference design.
+/// arrow.
 class GroceriesScreen extends ConsumerStatefulWidget {
   const GroceriesScreen({super.key});
 
@@ -220,7 +218,7 @@ class _GroceriesHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      color: context.colors.primary,
+      color: context.colors.surface,
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -228,19 +226,14 @@ class _GroceriesHeader extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Groceries',
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineSmall
-                    ?.copyWith(color: context.colors.primaryForeground),
-              ),
+              Text('Groceries', style: Theme.of(context).textTheme.headlineSmall),
               const SizedBox(height: 2),
               Text(
                 '$unpurchasedCount ${unpurchasedCount == 1 ? 'item' : 'items'} remaining',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: context.colors.primaryForeground.withValues(alpha: 0.85),
-                    ),
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: context.colors.textSecondary),
               ),
             ],
           ),
@@ -252,10 +245,10 @@ class _GroceriesHeader extends StatelessWidget {
               height: 40,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: context.colors.primaryForeground,
+                color: context.colors.primary,
                 shape: BoxShape.circle,
               ),
-              child: Icon(LucideIcons.plus, color: context.colors.primary),
+              child: Icon(LucideIcons.plus, color: context.colors.primaryForeground),
             ),
           ),
         ],
@@ -332,8 +325,12 @@ class _GroceryItemTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final row = Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+    final card = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: context.colors.surface,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Row(
         children: [
           InkWell(
@@ -370,31 +367,38 @@ class _GroceryItemTile extends ConsumerWidget {
     // Edit/remove are Owner/Adult only, and reachable only by swiping --
     // no always-visible delete icon. A non-manager's tile is plain, with
     // no swipe affordance at all.
-    if (!canManage) return row;
+    if (!canManage) {
+      return Padding(padding: const EdgeInsets.only(bottom: 8), child: card);
+    }
 
-    return Slidable(
-      key: ValueKey(item.id),
-      endActionPane: ActionPane(
-        motion: const DrawerMotion(),
-        extentRatio: 0.5,
-        children: [
-          SlidableAction(
-            onPressed: (_) => onEdit(),
-            backgroundColor: context.colors.primary.withValues(alpha: 0.12),
-            foregroundColor: context.colors.primary,
-            icon: LucideIcons.pencil,
-            label: 'Edit',
-          ),
-          SlidableAction(
-            onPressed: (_) => onDelete(),
-            backgroundColor: context.colors.error.withValues(alpha: 0.12),
-            foregroundColor: context.colors.error,
-            icon: LucideIcons.trash2,
-            label: 'Delete',
-          ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Slidable(
+        key: ValueKey(item.id),
+        endActionPane: ActionPane(
+          motion: const DrawerMotion(),
+          extentRatio: 0.5,
+          children: [
+            SlidableAction(
+              onPressed: (_) => onEdit(),
+              backgroundColor: context.colors.primary.withValues(alpha: 0.12),
+              foregroundColor: context.colors.primary,
+              icon: LucideIcons.pencil,
+              label: 'Edit',
+              borderRadius: BorderRadius.circular(16),
+            ),
+            SlidableAction(
+              onPressed: (_) => onDelete(),
+              backgroundColor: context.colors.error.withValues(alpha: 0.12),
+              foregroundColor: context.colors.error,
+              icon: LucideIcons.trash2,
+              label: 'Delete',
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ],
+        ),
+        child: card,
       ),
-      child: row,
     );
   }
 }

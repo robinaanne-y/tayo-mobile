@@ -45,9 +45,22 @@ Color _statusColor(BuildContext context, RequestStatus status) => switch (status
       RequestStatus.expired => context.colors.textSecondary,
     };
 
+/// When the household has designated a meal approver, that one member
+/// fully replaces the role check -- not additive -- so even the Owner
+/// must go through the request flow. With no approver set, any Owner/
+/// Adult manages, same as before. Mirrors `HouseholdPolicy::addMealPlanItem`
+/// exactly.
 bool _canManageMeals(WidgetRef ref) {
   final household = ref.watch(currentHouseholdProvider);
-  return household?.myRole == 'owner' || household?.myRole == 'adult';
+  if (household == null) return false;
+
+  final approverId = household.mealApproverMemberId;
+  if (approverId != null) {
+    final myMemberId = ref.watch(authControllerProvider).user?.member?.id;
+    return myMemberId == approverId;
+  }
+
+  return household.myRole == 'owner' || household.myRole == 'adult';
 }
 
 /// A bottom-nav tab (like Calendar/Groceries), not a pushed route.
@@ -62,8 +75,8 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
   DateTime _selectedDay = DateTime.now();
 
   DateTime get _weekStart {
-    final daysSinceSunday = _selectedDay.weekday % 7;
-    final start = _selectedDay.subtract(Duration(days: daysSinceSunday));
+    final daysSinceMonday = (_selectedDay.weekday - 1) % 7;
+    final start = _selectedDay.subtract(Duration(days: daysSinceMonday));
     return DateTime(start.year, start.month, start.day);
   }
 
@@ -78,6 +91,10 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
   void _refresh() {
     ref.invalidate(currentHouseholdMealPlanProvider(_weekRange));
     ref.invalidate(currentHouseholdMealRequestsProvider);
+    // Home's "Today's Meals" section reads a separate provider (today-only,
+    // not keyed by this screen's week range) — it needs its own invalidation
+    // or an edit made here would leave Home showing stale data.
+    ref.invalidate(currentHouseholdTodaysMealsProvider);
   }
 
   Future<void> _openSlotSheet(MealSlot slot, MealPlanItem? existing) async {
@@ -98,7 +115,7 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
           : _RequestMealSheet(
               householdId: household.id,
               date: _selectedDay,
-              slot: slot,
+              initialSlot: slot,
               suggestedTitle: existing?.title,
             ),
     );
@@ -106,10 +123,62 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
     if (changed == true) _refresh();
   }
 
+  /// The header "+ Request" action — available to everyone regardless of
+  /// `canManage` (including the approver themself, since the backend
+  /// already allows any member to create a request), unlike tapping a
+  /// slot card directly which only requests when the viewer can't manage.
+  Future<void> _openRequestSheet() async {
+    final household = ref.read(currentHouseholdProvider);
+    if (household == null) return;
+
+    final changed = await showAppBottomSheet<bool>(
+      context: context,
+      builder: (context) => _RequestMealSheet(
+        householdId: household.id,
+        date: _selectedDay,
+        initialSlot: MealSlot.breakfast,
+      ),
+    );
+
+    if (changed == true) _refresh();
+  }
+
+  Future<void> _respondToRequest(MealRequest request, {required bool approve}) async {
+    final household = ref.read(currentHouseholdProvider);
+    if (household == null) return;
+
+    final repository = ref.read(mealRequestRepositoryProvider);
+    try {
+      if (approve) {
+        await repository.approve(householdId: household.id, requestId: request.id);
+      } else {
+        await repository.decline(householdId: household.id, requestId: request.id);
+      }
+      _refresh();
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    }
+  }
+
+  Future<void> _openRequestDetail(MealRequest request) async {
+    final household = ref.read(currentHouseholdProvider);
+    if (household == null) return;
+
+    await showAppBottomSheet<bool>(
+      context: context,
+      builder: (context) => MealRequestDetailSheet(householdId: household.id, request: request),
+    );
+    _refresh();
+  }
+
   @override
   Widget build(BuildContext context) {
     final range = _weekRange;
     final planAsync = ref.watch(currentHouseholdMealPlanProvider(range));
+    final requestsAsync = ref.watch(currentHouseholdMealRequestsProvider);
+    final canManage = _canManageMeals(ref);
 
     return Scaffold(
       body: SafeArea(
@@ -124,11 +193,34 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
             final selectedKey = DateTime(_selectedDay.year, _selectedDay.month, _selectedDay.day);
             final todaysItems = itemsByDaySlot[selectedKey] ?? const <MealSlot, MealPlanItem>{};
 
+            // Pending requests targeting the selected day, surfaced as an
+            // inline banner right above that day's slots — only the one
+            // who can act on them (the approver, or any Owner/Adult when
+            // no approver is set) sees it; the full "Requests" section
+            // below remains for browsing/filtering the whole history.
+            final pendingForSelectedDay = canManage
+                ? (requestsAsync.valueOrNull ?? const <MealRequest>[]).where((r) {
+                    final requestKey =
+                        DateTime(r.requestedDate.year, r.requestedDate.month, r.requestedDate.day);
+                    return r.status == RequestStatus.pending && requestKey == selectedKey;
+                  }).toList()
+                : const <MealRequest>[];
+
             return ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                Text('Meals', style: Theme.of(context).textTheme.headlineSmall),
-                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Meals', style: Theme.of(context).textTheme.headlineSmall),
+                    TextButton.icon(
+                      onPressed: _openRequestSheet,
+                      icon: const Icon(LucideIcons.plus, size: 16),
+                      label: const Text('Request'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
                 _MealWeekStrip(
                   weekStart: range.start,
                   selectedDay: _selectedDay,
@@ -141,6 +233,15 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 8),
+                for (final request in pendingForSelectedDay) ...[
+                  _PendingRequestBanner(
+                    request: request,
+                    onApprove: () => _respondToRequest(request, approve: true),
+                    onDecline: () => _respondToRequest(request, approve: false),
+                    onTap: () => _openRequestDetail(request),
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 for (final slot in MealSlot.values) ...[
                   _MealSlotCard(
                     slot: slot,
@@ -150,9 +251,18 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
                   const SizedBox(height: 10),
                 ],
                 const SizedBox(height: 20),
+                Text('Week Overview', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 8),
+                _WeekOverviewTable(
+                  weekStart: range.start,
+                  selectedDay: _selectedDay,
+                  itemsByDay: itemsByDaySlot,
+                  onDaySelected: _selectDay,
+                ),
+                const SizedBox(height: 20),
                 Text('Requests', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
-                const _MealRequestsSection(),
+                _MealRequestsSection(onChanged: _refresh),
               ],
             );
           },
@@ -246,6 +356,199 @@ class _MealWeekStrip extends StatelessWidget {
           ),
         );
       }),
+    );
+  }
+}
+
+/// An inline "{requester} requested {title} for {slot}" card with quick
+/// Approve/Decline actions, shown above the day's slots for whoever can
+/// act on requests (the approver, or any Owner/Adult when none is set).
+/// Tapping the card itself (not the buttons) opens the full detail sheet
+/// for finer control (a response note, moving the date/slot).
+class _PendingRequestBanner extends StatelessWidget {
+  const _PendingRequestBanner({
+    required this.request,
+    required this.onApprove,
+    required this.onDecline,
+    required this.onTap,
+  });
+
+  final MealRequest request;
+  final VoidCallback onApprove;
+  final VoidCallback onDecline;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: context.colors.accent.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: context.colors.accent.withValues(alpha: 0.4)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(_slotIcon(request.requestedSlot), size: 18, color: context.colors.accent),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '${request.requesterName} requested ${request.title} for '
+                    '${_slotLabel(request.requestedSlot).toLowerCase()}',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: onApprove,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: context.colors.primary,
+                      foregroundColor: context.colors.primaryForeground,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                    child: const Text('Approve'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onDecline,
+                    style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 8)),
+                    child: const Text('Decline'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A 7-row x 3-column glance at the whole week's plan, built from the
+/// same `itemsByDaySlot` map the day view already computes from the
+/// already-fetched week range — no extra data fetching. Tapping a row
+/// selects that day, same as the week strip above.
+class _WeekOverviewTable extends StatelessWidget {
+  const _WeekOverviewTable({
+    required this.weekStart,
+    required this.selectedDay,
+    required this.itemsByDay,
+    required this.onDaySelected,
+  });
+
+  final DateTime weekStart;
+  final DateTime selectedDay;
+  final Map<DateTime, Map<MealSlot, MealPlanItem>> itemsByDay;
+  final ValueChanged<DateTime> onDaySelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final headerStyle = Theme.of(context)
+        .textTheme
+        .labelSmall
+        ?.copyWith(color: context.colors.textSecondary, fontWeight: FontWeight.w700);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: context.colors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.colors.border),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+            child: Row(
+              children: [
+                const SizedBox(width: 48),
+                for (final slot in MealSlot.values)
+                  Expanded(
+                    child: Text(
+                      _slotLabel(slot).toUpperCase(),
+                      textAlign: TextAlign.center,
+                      style: headerStyle,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          for (final entry in List.generate(7, (i) => weekStart.add(Duration(days: i))).asMap().entries) ...[
+            if (entry.key > 0) Divider(height: 1, color: context.colors.border),
+            _WeekOverviewRow(
+              day: entry.value,
+              isSelected: DateTime(entry.value.year, entry.value.month, entry.value.day) ==
+                  DateTime(selectedDay.year, selectedDay.month, selectedDay.day),
+              items: itemsByDay[DateTime(entry.value.year, entry.value.month, entry.value.day)] ??
+                  const <MealSlot, MealPlanItem>{},
+              onTap: () => onDaySelected(entry.value),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _WeekOverviewRow extends StatelessWidget {
+  const _WeekOverviewRow({
+    required this.day,
+    required this.isSelected,
+    required this.items,
+    required this.onTap,
+  });
+
+  final DateTime day;
+  final bool isSelected;
+  final Map<MealSlot, MealPlanItem> items;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        color: isSelected ? context.colors.primary.withValues(alpha: 0.06) : null,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 48,
+              child: Text(
+                DateFormat.E().format(day).substring(0, 3),
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: isSelected ? context.colors.primary : context.colors.textPrimary,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    ),
+              ),
+            ),
+            for (final slot in MealSlot.values)
+              Expanded(
+                child: Text(
+                  items[slot]?.title ?? '—',
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: items[slot] == null ? context.colors.textSecondary : null,
+                      ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -395,13 +698,13 @@ class _RequestMealSheet extends ConsumerStatefulWidget {
   const _RequestMealSheet({
     required this.householdId,
     required this.date,
-    required this.slot,
+    required this.initialSlot,
     this.suggestedTitle,
   });
 
   final int householdId;
   final DateTime date;
-  final MealSlot slot;
+  final MealSlot initialSlot;
   final String? suggestedTitle;
 
   @override
@@ -410,6 +713,7 @@ class _RequestMealSheet extends ConsumerStatefulWidget {
 
 class _RequestMealSheetState extends ConsumerState<_RequestMealSheet> {
   late final _titleController = TextEditingController(text: widget.suggestedTitle ?? '');
+  late MealSlot _slot = widget.initialSlot;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -432,7 +736,7 @@ class _RequestMealSheetState extends ConsumerState<_RequestMealSheet> {
       await ref.read(mealRequestRepositoryProvider).create(
             householdId: widget.householdId,
             requestedDate: widget.date,
-            requestedSlot: widget.slot,
+            requestedSlot: _slot,
             title: title,
           );
       if (mounted) Navigator.of(context).pop(true);
@@ -450,7 +754,7 @@ class _RequestMealSheetState extends ConsumerState<_RequestMealSheet> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Request ${_slotLabel(widget.slot).toLowerCase()} · ${DateFormat('MMM d').format(widget.date)}',
+          'Request a meal · ${DateFormat('MMM d').format(widget.date)}',
           style: Theme.of(context).textTheme.titleLarge,
         ),
         const SizedBox(height: 16),
@@ -458,6 +762,21 @@ class _RequestMealSheetState extends ConsumerState<_RequestMealSheet> {
           Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
           const SizedBox(height: 12),
         ],
+        Row(
+          children: [
+            for (final slot in MealSlot.values) ...[
+              Expanded(
+                child: _MealFilterChip(
+                  label: _slotLabel(slot),
+                  selected: _slot == slot,
+                  onTap: () => setState(() => _slot = slot),
+                ),
+              ),
+              if (slot != MealSlot.values.last) const SizedBox(width: 8),
+            ],
+          ],
+        ),
+        const SizedBox(height: 16),
         AppTextField(label: 'What do you want to eat?', controller: _titleController),
         const SizedBox(height: 16),
         PrimaryButton(label: 'Send request', isLoading: _isLoading, onPressed: _submit),
@@ -467,7 +786,13 @@ class _RequestMealSheetState extends ConsumerState<_RequestMealSheet> {
 }
 
 class _MealRequestsSection extends ConsumerStatefulWidget {
-  const _MealRequestsSection();
+  const _MealRequestsSection({required this.onChanged});
+
+  /// Called after a request's detail sheet closes — approving/declining
+  /// can create or update a meal plan item, so the parent screen's week
+  /// view and Home's "Today's Meals" need a chance to refresh too, not
+  /// just this section's own request list.
+  final VoidCallback onChanged;
 
   @override
   ConsumerState<_MealRequestsSection> createState() => _MealRequestsSectionState();
@@ -485,6 +810,7 @@ class _MealRequestsSectionState extends ConsumerState<_MealRequestsSection> {
       builder: (context) => MealRequestDetailSheet(householdId: household.id, request: request),
     );
     ref.invalidate(currentHouseholdMealRequestsProvider);
+    widget.onChanged();
   }
 
   @override
@@ -558,6 +884,7 @@ class _MealFilterChip extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        alignment: Alignment.center,
         decoration: BoxDecoration(
           color: selected ? context.colors.primary.withValues(alpha: 0.12) : null,
           borderRadius: BorderRadius.circular(999),

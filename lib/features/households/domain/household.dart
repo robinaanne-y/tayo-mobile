@@ -7,6 +7,8 @@ class Household {
     this.myRole,
     this.memberCount,
     this.createdAt,
+    this.mealApproverMemberId,
+    this.mealApproverName,
   });
 
   final int id;
@@ -16,6 +18,12 @@ class Household {
   final String? myRole;
   final int? memberCount;
   final DateTime? createdAt;
+
+  /// The one member designated to manage the meal plan and approve/
+  /// decline meal requests, when set -- null means no delegation: any
+  /// Owner/Adult manages. See `MealsScreen`'s `_canManageMeals`.
+  final int? mealApproverMemberId;
+  final String? mealApproverName;
 
   factory Household.fromJson(Map<String, dynamic> json) {
     return Household(
@@ -28,6 +36,8 @@ class Household {
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,
+      mealApproverMemberId: json['meal_approver_member_id'] as int?,
+      mealApproverName: json['meal_approver_name'] as String?,
     );
   }
 }

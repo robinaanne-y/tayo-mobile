@@ -140,6 +140,8 @@ _AttentionItem _mealAttentionItem(MealRequest request) {
         builder: (context) => MealRequestDetailSheet(householdId: household.id, request: request),
       );
       ref.invalidate(currentHouseholdMealRequestsProvider);
+      // Approving can create/update a meal plan item for today.
+      ref.invalidate(currentHouseholdTodaysMealsProvider);
     },
   );
 }
@@ -409,9 +411,16 @@ class _SectionHeaderRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: Theme.of(context).textTheme.titleMedium),
+        Expanded(
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+        ),
+        const SizedBox(width: 8),
         TextButton(
           onPressed: onAction,
           style: TextButton.styleFrom(

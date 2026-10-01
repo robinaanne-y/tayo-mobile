@@ -810,23 +810,42 @@ class _GroceriesSection extends ConsumerWidget {
               );
             }
 
-            final unpurchasedCount = items.where((i) => !i.isPurchased).length;
+            final unpurchased = items.where((i) => !i.isPurchased).toList();
+            const maxTags = 5;
+            final shownNames = unpurchased.take(maxTags).map((i) => i.name).toList();
+            final remaining = unpurchased.length - shownNames.length;
 
             return AppCard(
               onTap: () => context.go('/groceries'),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(LucideIcons.shoppingBag, color: context.colors.primary),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      unpurchasedCount == 0
-                          ? 'Everything is checked off'
-                          : '$unpurchasedCount item${unpurchasedCount == 1 ? '' : 's'} left to buy',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
+                  Row(
+                    children: [
+                      Icon(LucideIcons.shoppingBag, color: context.colors.primary),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          unpurchased.isEmpty
+                              ? 'Everything is checked off'
+                              : '${unpurchased.length} item${unpurchased.length == 1 ? '' : 's'} left to buy',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ),
+                      Icon(LucideIcons.chevronRight, size: 18, color: context.colors.textSecondary),
+                    ],
                   ),
-                  Icon(LucideIcons.chevronRight, size: 18, color: context.colors.textSecondary),
+                  if (shownNames.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final name in shownNames) _GroceryTag(label: name),
+                        if (remaining > 0) _GroceryTag(label: '+$remaining more'),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             );
@@ -842,6 +861,30 @@ class _GroceriesSection extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _GroceryTag extends StatelessWidget {
+  const _GroceryTag({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: context.colors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context)
+            .textTheme
+            .labelSmall
+            ?.copyWith(color: context.colors.primary, fontWeight: FontWeight.w600),
+      ),
     );
   }
 }

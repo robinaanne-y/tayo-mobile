@@ -478,22 +478,27 @@ class _PendingMealRequestCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                _MealActionPill(
-                  label: 'Approve',
-                  background: context.colors.primary,
-                  foreground: context.colors.primaryForeground,
-                  onPressed: onApprove,
-                ),
-                const SizedBox(width: 8),
-                _MealActionPill(
-                  label: 'Decline',
-                  background: context.colors.error.withValues(alpha: 0.12),
-                  foreground: context.colors.error,
-                  onPressed: onDecline,
-                ),
-              ],
+            Padding(
+              // Aligns the buttons with the text above, not the icon —
+              // matches the icon's width (18) plus its gap (10).
+              padding: const EdgeInsets.only(left: 28),
+              child: Row(
+                children: [
+                  _MealActionPill(
+                    label: 'Approve',
+                    background: context.colors.primary,
+                    foreground: context.colors.primaryForeground,
+                    onPressed: onApprove,
+                  ),
+                  const SizedBox(width: 8),
+                  _MealActionPill(
+                    label: 'Decline',
+                    background: context.colors.error.withValues(alpha: 0.12),
+                    foreground: context.colors.error,
+                    onPressed: onDecline,
+                  ),
+                ],
+              ),
             ),
           ],
         ),

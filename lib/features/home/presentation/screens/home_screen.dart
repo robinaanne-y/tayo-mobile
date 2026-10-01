@@ -602,6 +602,12 @@ String _homeMealSlotLabel(MealSlot slot) => switch (slot) {
       MealSlot.dinner => 'Dinner',
     };
 
+IconData _homeMealSlotIcon(MealSlot slot) => switch (slot) {
+      MealSlot.breakfast => LucideIcons.coffee,
+      MealSlot.lunch => LucideIcons.sandwich,
+      MealSlot.dinner => LucideIcons.utensils,
+    };
+
 /// Today's Meals: real data, backed by `households/{household}/meal-plan-
 /// items` filtered to today, same pattern as `_TodaysScheduleSection`.
 /// Browsing/editing other days happens on the full Meals screen.
@@ -617,7 +623,7 @@ class _TodaysMealsSection extends ConsumerWidget {
       children: [
         _SectionHeaderRow(
           title: "Today's Meals",
-          actionLabel: 'View week',
+          actionLabel: 'Request meal',
           onAction: () => context.go('/meals'),
         ),
         const SizedBox(height: 8),
@@ -646,22 +652,45 @@ class _TodaysMealsSection extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       child: Row(
                         children: [
-                          SizedBox(
-                            width: 90,
-                            child: Text(
-                              _homeMealSlotLabel(entry.value),
-                              style: Theme.of(context).textTheme.bodySmall,
+                          Container(
+                            width: 36,
+                            height: 36,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: context.colors.primary.withValues(alpha: 0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              _homeMealSlotIcon(entry.value),
+                              color: context.colors.primary,
+                              size: 16,
                             ),
                           ),
+                          const SizedBox(width: 12),
                           Expanded(
-                            child: Text(
-                              bySlot[entry.value]?.title ?? '—',
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: bySlot[entry.value] == null
-                                        ? context.colors.textSecondary
-                                        : null,
-                                  ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _homeMealSlotLabel(entry.value).toUpperCase(),
+                                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                        color: context.colors.textSecondary,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 0.4,
+                                      ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  bySlot[entry.value]?.title ?? '—',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        color: bySlot[entry.value] == null
+                                            ? context.colors.textSecondary
+                                            : null,
+                                      ),
+                                ),
+                              ],
                             ),
                           ),
                         ],

@@ -182,94 +182,111 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: planAsync.when(
-          data: (items) {
-            final itemsByDaySlot = <DateTime, Map<MealSlot, MealPlanItem>>{};
-            for (final item in items) {
-              final key = DateTime(item.date.year, item.date.month, item.date.day);
-              (itemsByDaySlot[key] ??= {})[item.slot] = item;
-            }
-
-            final selectedKey = DateTime(_selectedDay.year, _selectedDay.month, _selectedDay.day);
-            final todaysItems = itemsByDaySlot[selectedKey] ?? const <MealSlot, MealPlanItem>{};
-
-            // Pending requests targeting the selected day, surfaced as an
-            // inline banner right above that day's slots — only the one
-            // who can act on them (the approver, or any Owner/Adult when
-            // no approver is set) sees it; the full "Requests" section
-            // below remains for browsing/filtering the whole history.
-            final pendingForSelectedDay = canManage
-                ? (requestsAsync.valueOrNull ?? const <MealRequest>[]).where((r) {
-                    final requestKey =
-                        DateTime(r.requestedDate.year, r.requestedDate.month, r.requestedDate.day);
-                    return r.status == RequestStatus.pending && requestKey == selectedKey;
-                  }).toList()
-                : const <MealRequest>[];
-
-            return ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Meals', style: Theme.of(context).textTheme.headlineSmall),
-                    TextButton.icon(
-                      onPressed: _openRequestSheet,
-                      icon: const Icon(LucideIcons.plus, size: 16),
-                      label: const Text('Request'),
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              color: context.colors.surface,
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Meals', style: Theme.of(context).textTheme.headlineSmall),
+                  ElevatedButton.icon(
+                    onPressed: _openRequestSheet,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: context.colors.primary,
+                      foregroundColor: context.colors.primaryForeground,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                _MealWeekStrip(
-                  weekStart: range.start,
-                  selectedDay: _selectedDay,
-                  itemsByDay: itemsByDaySlot,
-                  onDaySelected: _selectDay,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  DateFormat('EEEE, MMM d').format(_selectedDay),
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                for (final request in pendingForSelectedDay) ...[
-                  _PendingRequestBanner(
-                    request: request,
-                    onApprove: () => _respondToRequest(request, approve: true),
-                    onDecline: () => _respondToRequest(request, approve: false),
-                    onTap: () => _openRequestDetail(request),
+                    icon: const Icon(LucideIcons.plus, size: 16),
+                    label: const Text('Request'),
                   ),
-                  const SizedBox(height: 10),
                 ],
-                for (final slot in MealSlot.values) ...[
-                  _MealSlotCard(
-                    slot: slot,
-                    item: todaysItems[slot],
-                    onTap: () => _openSlotSheet(slot, todaysItems[slot]),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-                const SizedBox(height: 20),
-                Text('Week Overview', style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 8),
-                _WeekOverviewTable(
-                  weekStart: range.start,
-                  selectedDay: _selectedDay,
-                  itemsByDay: itemsByDaySlot,
-                  onDaySelected: _selectDay,
+              ),
+            ),
+            Expanded(
+              child: planAsync.when(
+                data: (items) {
+                  final itemsByDaySlot = <DateTime, Map<MealSlot, MealPlanItem>>{};
+                  for (final item in items) {
+                    final key = DateTime(item.date.year, item.date.month, item.date.day);
+                    (itemsByDaySlot[key] ??= {})[item.slot] = item;
+                  }
+
+                  final selectedKey = DateTime(_selectedDay.year, _selectedDay.month, _selectedDay.day);
+                  final todaysItems = itemsByDaySlot[selectedKey] ?? const <MealSlot, MealPlanItem>{};
+
+                  // Pending requests targeting the selected day, surfaced as
+                  // an inline banner right above that day's slots — only the
+                  // one who can act on them (the approver, or any Owner/
+                  // Adult when no approver is set) sees it; the full
+                  // "Requests" section below remains for browsing/filtering
+                  // the whole history.
+                  final pendingForSelectedDay = canManage
+                      ? (requestsAsync.valueOrNull ?? const <MealRequest>[]).where((r) {
+                          final requestKey = DateTime(
+                              r.requestedDate.year, r.requestedDate.month, r.requestedDate.day);
+                          return r.status == RequestStatus.pending && requestKey == selectedKey;
+                        }).toList()
+                      : const <MealRequest>[];
+
+                  return ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      _MealWeekStrip(
+                        weekStart: range.start,
+                        selectedDay: _selectedDay,
+                        itemsByDay: itemsByDaySlot,
+                        onDaySelected: _selectDay,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        DateFormat('EEEE, MMM d').format(_selectedDay),
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      for (final request in pendingForSelectedDay) ...[
+                        _PendingRequestBanner(
+                          request: request,
+                          onApprove: () => _respondToRequest(request, approve: true),
+                          onDecline: () => _respondToRequest(request, approve: false),
+                          onTap: () => _openRequestDetail(request),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                      for (final slot in MealSlot.values) ...[
+                        _MealSlotCard(
+                          slot: slot,
+                          item: todaysItems[slot],
+                          onTap: () => _openSlotSheet(slot, todaysItems[slot]),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                      const SizedBox(height: 20),
+                      Text('Week Overview', style: Theme.of(context).textTheme.titleMedium),
+                      const SizedBox(height: 8),
+                      _WeekOverviewTable(
+                        weekStart: range.start,
+                        selectedDay: _selectedDay,
+                        itemsByDay: itemsByDaySlot,
+                        onDaySelected: _selectDay,
+                      ),
+                      const SizedBox(height: 20),
+                      Text('Requests', style: Theme.of(context).textTheme.titleMedium),
+                      const SizedBox(height: 8),
+                      _MealRequestsSection(onChanged: _refresh),
+                    ],
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, stack) => Center(
+                  child: Text(error is ApiException ? error.message : 'Something went wrong.'),
                 ),
-                const SizedBox(height: 20),
-                Text('Requests', style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 8),
-                _MealRequestsSection(onChanged: _refresh),
-              ],
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, stack) => Center(
-            child: Text(error is ApiException ? error.message : 'Something went wrong.'),
-          ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -360,11 +377,21 @@ class _MealWeekStrip extends StatelessWidget {
   }
 }
 
-/// An inline "{requester} requested {title} for {slot}" card with quick
-/// Approve/Decline actions, shown above the day's slots for whoever can
-/// act on requests (the approver, or any Owner/Adult when none is set).
-/// Tapping the card itself (not the buttons) opens the full detail sheet
-/// for finer control (a response note, moving the date/slot).
+/// "on friday" for a date within the next week, else "on Mon, Oct 5" —
+/// used by `_PendingRequestBanner` so a request reads naturally regardless
+/// of whether it targets the day currently being viewed or some other day.
+String _requestDayLabel(DateTime date) {
+  final today = DateUtils.dateOnly(DateTime.now());
+  final diff = DateUtils.dateOnly(date).difference(today).inDays;
+  if (diff >= 0 && diff < 7) return 'on ${DateFormat('EEEE').format(date).toLowerCase()}';
+  return 'on ${DateFormat('EEE, MMM d').format(date)}';
+}
+
+/// A compact "{requester} requested {title} for {slot} {day}" card with
+/// quick Approve/Decline actions, shown above the day's slots for whoever
+/// can act on requests (the approver, or any Owner/Adult when none is
+/// set). Tapping the card itself (not the buttons) opens the full detail
+/// sheet for finer control (a response note, moving the date/slot).
 class _PendingRequestBanner extends StatelessWidget {
   const _PendingRequestBanner({
     required this.request,
@@ -382,53 +409,46 @@ class _PendingRequestBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(14),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: context.colors.accent.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: context.colors.accent.withValues(alpha: 0.4)),
+          color: context.colors.error.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: context.colors.error.withValues(alpha: 0.25)),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Row(
-              children: [
-                Icon(_slotIcon(request.requestedSlot), size: 18, color: context.colors.accent),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    '${request.requesterName} requested ${request.title} for '
-                    '${_slotLabel(request.requestedSlot).toLowerCase()}',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ),
-              ],
+            Icon(_slotIcon(request.requestedSlot), size: 18, color: context.colors.error),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '${request.requesterName} requested ${request.title} for '
+                '${_slotLabel(request.requestedSlot).toLowerCase()} '
+                '${_requestDayLabel(request.requestedDate)}',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
             ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: onApprove,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: context.colors.primary,
-                      foregroundColor: context.colors.primaryForeground,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                    ),
-                    child: const Text('Approve'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: onDecline,
-                    style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 8)),
-                    child: const Text('Decline'),
-                  ),
-                ),
-              ],
+            const SizedBox(width: 10),
+            ElevatedButton(
+              onPressed: onApprove,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: context.colors.primary,
+                foregroundColor: context.colors.primaryForeground,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text('Approve'),
+            ),
+            TextButton(
+              onPressed: onDecline,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text('Decline'),
             ),
           ],
         ),

@@ -1019,20 +1019,36 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
             ),
             if (_recurrenceFrequency == RecurrenceFrequency.weekly) ...[
               const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  for (var day = 1; day <= 7; day++)
-                    _WeekdayChip(
-                      day: day,
-                      selected: _recurrenceByDay.contains(day),
-                      onTap: () => setState(() {
-                        if (!_recurrenceByDay.remove(day)) {
-                          _recurrenceByDay.add(day);
-                        }
-                      }),
+                  Expanded(
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (var day = 1; day <= 7; day++)
+                          _WeekdayChip(
+                            day: day,
+                            selected: _recurrenceByDay.contains(day),
+                            onTap: () => setState(() {
+                              if (!_recurrenceByDay.remove(day)) {
+                                _recurrenceByDay.add(day);
+                              }
+                            }),
+                          ),
+                      ],
                     ),
+                  ),
+                  TextButton(
+                    onPressed: () => setState(() => _recurrenceByDay = {1, 2, 3, 4, 5}),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text('Weekdays'),
+                  ),
                 ],
               ),
             ],

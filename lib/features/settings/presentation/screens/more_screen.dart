@@ -182,7 +182,7 @@ class _MoreListTile extends StatelessWidget {
 class _DefaultHouseholdSheet extends ConsumerWidget {
   const _DefaultHouseholdSheet();
 
-  Future<void> _select(BuildContext context, WidgetRef ref, int? householdId) async {
+  Future<void> _select(BuildContext context, WidgetRef ref, int householdId) async {
     try {
       await ref.read(authControllerProvider.notifier).updateDefaultHousehold(householdId: householdId);
       if (context.mounted) Navigator.of(context).pop();
@@ -210,12 +210,10 @@ class _DefaultHouseholdSheet extends ConsumerWidget {
           style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: 16),
-        _DefaultHouseholdOption(
-          label: 'Use first household automatically',
-          selected: defaultId == null,
-          onTap: () => _select(context, ref, null),
-        ),
-        const SizedBox(height: 8),
+        // No "use first automatically" option -- the first household anyone
+        // creates is already set as their default server-side (see
+        // HouseholdController::store()), so there's no unset state to
+        // expose here; picking a different household just replaces it.
         for (final household in households) ...[
           _DefaultHouseholdOption(
             label: household.name,

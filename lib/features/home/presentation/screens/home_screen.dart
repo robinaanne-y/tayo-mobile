@@ -94,20 +94,32 @@ bool _canManageMealsFor(Household? household, int? myMemberId) {
 /// then shows a single "Review" affordance instead of the three-button row.
 class _AttentionItem {
   const _AttentionItem({
+    required this.id,
     required this.icon,
     required this.iconBackground,
     required this.description,
     required this.onReview,
     this.onApprove,
     this.onDecline,
+    this.onAcknowledge,
   });
 
+  /// A stable key ("permission-5", "meal-12") distinguishing requests of
+  /// different types that happen to share a numeric id — used to dedupe
+  /// which items have already been auto-acknowledged this sheet session.
+  final String id;
   final IconData icon;
   final Color iconBackground;
   final String description;
   final Future<void> Function(BuildContext context, WidgetRef ref) onReview;
   final Future<void> Function(BuildContext context, WidgetRef ref)? onApprove;
   final Future<void> Function(BuildContext context, WidgetRef ref)? onDecline;
+
+  /// Set only for a resolved request the viewer hasn't acknowledged yet —
+  /// called automatically once the bell sheet shows it (see
+  /// `_NotificationsSheet`), so simply opening the bell is enough to clear
+  /// it, rather than requiring the viewer to tap into its detail sheet.
+  final Future<void> Function(WidgetRef ref)? onAcknowledge;
 
   bool get canAct => onApprove != null && onDecline != null;
 }
@@ -143,12 +155,23 @@ _AttentionItem _permissionAttentionItem(PermissionRequest request, {required boo
           '${request.status == RequestStatus.approved ? 'approved' : 'declined'}';
 
   return _AttentionItem(
+    id: 'permission-${request.id}',
     icon: LucideIcons.shield,
     iconBackground: AppColors.coral,
     description: description,
     onReview: review,
     onApprove: canActOnIt ? (context, ref) => respond(ref, approve: true) : null,
     onDecline: canActOnIt ? (context, ref) => respond(ref, approve: false) : null,
+    onAcknowledge: request.needsRequesterAttention
+        ? (ref) async {
+            final household = ref.read(currentHouseholdProvider);
+            if (household == null) return;
+            await ref
+                .read(permissionRequestRepositoryProvider)
+                .acknowledge(householdId: household.id, requestId: request.id);
+            ref.invalidate(currentHouseholdRequestsProvider);
+          }
+        : null,
   );
 }
 
@@ -185,24 +208,35 @@ _AttentionItem _mealAttentionItem(MealRequest request, {required bool canActOnIt
           '${request.status == RequestStatus.approved ? 'approved' : 'declined'}';
 
   return _AttentionItem(
+    id: 'meal-${request.id}',
     icon: LucideIcons.utensils,
     iconBackground: AppColors.lavender,
     description: description,
     onReview: review,
     onApprove: canActOnIt ? (context, ref) => respond(ref, approve: true) : null,
     onDecline: canActOnIt ? (context, ref) => respond(ref, approve: false) : null,
+    onAcknowledge: request.needsRequesterAttention
+        ? (ref) async {
+            final household = ref.read(currentHouseholdProvider);
+            if (household == null) return;
+            await ref
+                .read(mealRequestRepositoryProvider)
+                .acknowledge(householdId: household.id, requestId: request.id);
+            ref.invalidate(currentHouseholdMealRequestsProvider);
+          }
+        : null,
   );
 }
 
-/// Combines permission requests and meal requests currently needing this
-/// viewer's attention — either a pending one they can act on, or one of
-/// their own that was just approved/declined and they haven't opened since
-/// (the API's viewer-relative `needs_requester_attention` field already
-/// does this check server-side). Permission requests and meal requests use
-/// different "can manage" rules (meal requests respect a per-household
-/// approver override — see `_canManageMealsFor`), so each list is checked
-/// against its own flag rather than one shared one.
-List<_AttentionItem> _combinedAttentionItems({
+/// Permission/meal requests the viewer can act on right now (pending,
+/// never their own request) — this is the *only* thing "Needs Your
+/// Attention" and the bell badge count ever show; a resolved request never
+/// appears here regardless of whether the requester has seen it yet (see
+/// `_resolvedAttentionItems` for that). Permission requests and meal
+/// requests use different "can manage" rules (meal requests respect a
+/// per-household approver override — see `_canManageMealsFor`), so each
+/// list is checked against its own flag rather than one shared one.
+List<_AttentionItem> _actionableAttentionItems({
   required List<PermissionRequest> permissionRequests,
   required List<MealRequest> mealRequests,
   required int? myMemberId,
@@ -214,17 +248,35 @@ List<_AttentionItem> _combinedAttentionItems({
   for (final r in permissionRequests) {
     final canActOnIt =
         canManagePermissions && r.status == RequestStatus.pending && r.requesterMemberId != myMemberId;
-    if (canActOnIt || r.needsRequesterAttention) {
-      items.add(_permissionAttentionItem(r, canActOnIt: canActOnIt));
-    }
+    if (canActOnIt) items.add(_permissionAttentionItem(r, canActOnIt: true));
   }
 
   for (final r in mealRequests) {
     final canActOnIt =
         canManageMeals && r.status == RequestStatus.pending && r.requesterMemberId != myMemberId;
-    if (canActOnIt || r.needsRequesterAttention) {
-      items.add(_mealAttentionItem(r, canActOnIt: canActOnIt));
-    }
+    if (canActOnIt) items.add(_mealAttentionItem(r, canActOnIt: true));
+  }
+
+  return items;
+}
+
+/// The viewer's own requests that were just approved/declined and they
+/// haven't acknowledged yet (the API's viewer-relative
+/// `needs_requester_attention` field). Surfaced only in the bell sheet's
+/// "Recently resolved" section, never in "Needs Your Attention" or the
+/// badge count — there's nothing left to *do* with these, only to notice.
+List<_AttentionItem> _resolvedAttentionItems({
+  required List<PermissionRequest> permissionRequests,
+  required List<MealRequest> mealRequests,
+}) {
+  final items = <_AttentionItem>[];
+
+  for (final r in permissionRequests) {
+    if (r.needsRequesterAttention) items.add(_permissionAttentionItem(r, canActOnIt: false));
+  }
+
+  for (final r in mealRequests) {
+    if (r.needsRequesterAttention) items.add(_mealAttentionItem(r, canActOnIt: false));
   }
 
   return items;
@@ -278,7 +330,7 @@ class HomeScreen extends ConsumerWidget {
     final canManage = household?.myRole == 'owner' || household?.myRole == 'adult';
     final allRequests = ref.watch(currentHouseholdRequestsProvider).valueOrNull;
     final allMealRequests = ref.watch(currentHouseholdMealRequestsProvider).valueOrNull;
-    final actionableCount = _combinedAttentionItems(
+    final actionableCount = _actionableAttentionItems(
       permissionRequests: allRequests ?? const [],
       mealRequests: allMealRequests ?? const [],
       myMemberId: myMemberId,
@@ -891,11 +943,13 @@ class _GroceryTag extends StatelessWidget {
 }
 
 /// Needs Your Attention: permission requests AND meal requests the viewer
-/// should look at, each its own single-row card with inline Approve/
+/// can act on right now, each its own single-row card with inline Approve/
 /// Review/Decline actions — not grouped inside one card whose whole area
 /// used to navigate to the (permission-only) Requests screen regardless of
-/// which item, or what type, was actually tapped. A capped-at-3 preview;
-/// "See all" (added below once there are more) would go to the full list.
+/// which item, or what type, was actually tapped. A resolved request never
+/// shows here, even unacknowledged — see `_resolvedAttentionItems`, surfaced
+/// only in the bell sheet. A capped-at-3 preview; "See all" (added below
+/// once there are more) would go to the full list.
 class _PendingRequestsSection extends ConsumerWidget {
   const _PendingRequestsSection();
 
@@ -922,7 +976,7 @@ class _PendingRequestsSection extends ConsumerWidget {
       );
     }
 
-    final attention = _combinedAttentionItems(
+    final attention = _actionableAttentionItems(
       permissionRequests: requestsAsync.valueOrNull ?? const [],
       mealRequests: mealRequestsAsync.valueOrNull ?? const [],
       myMemberId: myMemberId,
@@ -1070,18 +1124,48 @@ class _AttentionPillButton extends StatelessWidget {
 }
 
 /// The header bell's target — a personal, scoped view of what needs this
-/// viewer's attention (mirrors `_combinedAttentionItems`/
+/// viewer's attention (mirrors `_actionableAttentionItems`/
 /// `_PendingRequestsSection` above, now covering meal requests too), as
 /// opposed to the "Permissions" tile which opens the full household-wide
 /// Requests management screen regardless of viewer. Pops with the string
 /// 'view-all' if the viewer wants that fuller screen instead — the caller
 /// (the bell's onPressed) pushes `/requests` for it, the same
 /// pop-then-caller-acts pattern `_HouseholdSwitcherSheet` uses.
-class _NotificationsSheet extends ConsumerWidget {
+///
+/// Also shows a "Recently resolved" section for the viewer's own requests
+/// that were just approved/declined — unlike the actionable section above,
+/// these are acknowledged automatically as soon as this sheet renders them
+/// (see `_acknowledgeNewlyVisible`), so simply opening the bell is enough
+/// to clear them from here and from the badge count next time, rather than
+/// requiring a tap into each one's detail sheet.
+class _NotificationsSheet extends ConsumerStatefulWidget {
   const _NotificationsSheet();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_NotificationsSheet> createState() => _NotificationsSheetState();
+}
+
+class _NotificationsSheetState extends ConsumerState<_NotificationsSheet> {
+  final Set<String> _acknowledging = {};
+
+  void _acknowledgeNewlyVisible(List<_AttentionItem> resolved) {
+    final toAcknowledge = resolved.where((item) => !_acknowledging.contains(item.id)).toList();
+    if (toAcknowledge.isEmpty) return;
+
+    for (final item in toAcknowledge) {
+      _acknowledging.add(item.id);
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      for (final item in toAcknowledge) {
+        item.onAcknowledge?.call(ref);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final requestsAsync = ref.watch(currentHouseholdRequestsProvider);
     final mealRequestsAsync = ref.watch(currentHouseholdMealRequestsProvider);
     final household = ref.watch(currentHouseholdProvider);
@@ -1114,15 +1198,24 @@ class _NotificationsSheet extends ConsumerWidget {
         else
           Builder(
             builder: (context) {
-              final attention = _combinedAttentionItems(
-                permissionRequests: requestsAsync.valueOrNull ?? const [],
-                mealRequests: mealRequestsAsync.valueOrNull ?? const [],
+              final permissionRequests = requestsAsync.valueOrNull ?? const [];
+              final mealRequests = mealRequestsAsync.valueOrNull ?? const [];
+
+              final actionable = _actionableAttentionItems(
+                permissionRequests: permissionRequests,
+                mealRequests: mealRequests,
                 myMemberId: myMemberId,
                 canManagePermissions: canManage,
                 canManageMeals: canManageMeals,
               );
+              final resolved = _resolvedAttentionItems(
+                permissionRequests: permissionRequests,
+                mealRequests: mealRequests,
+              );
 
-              if (attention.isEmpty) {
+              _acknowledgeNewlyVisible(resolved);
+
+              if (actionable.isEmpty && resolved.isEmpty) {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Text(
@@ -1135,9 +1228,27 @@ class _NotificationsSheet extends ConsumerWidget {
 
               return Column(
                 children: [
-                  for (final item in attention) ...[
+                  for (final item in actionable) ...[
                     _AttentionItemCard(item: item),
                     const SizedBox(height: 10),
+                  ],
+                  if (resolved.isNotEmpty) ...[
+                    if (actionable.isNotEmpty) const SizedBox(height: 6),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Recently resolved',
+                        style: Theme.of(context)
+                            .textTheme
+                            .labelMedium
+                            ?.copyWith(color: context.colors.textSecondary),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    for (final item in resolved) ...[
+                      _AttentionItemCard(item: item),
+                      const SizedBox(height: 10),
+                    ],
                   ],
                 ],
               );

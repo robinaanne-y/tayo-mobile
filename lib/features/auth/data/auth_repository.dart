@@ -76,6 +76,15 @@ class AuthRepository {
     );
   }
 
+  Future<AppUser> updateDefaultHousehold({required int? householdId}) async {
+    final response = await _apiClient.patch('/auth/default-household', data: {
+      'household_id': householdId,
+    });
+    return AppUser.fromJson(
+      (response.data as Map<String, dynamic>)['data'] as Map<String, dynamic>,
+    );
+  }
+
   Future<AppUser> _persistAndReturnUser(Map<String, dynamic> data) async {
     await _tokenStorage.saveToken(data['token'] as String);
     return AppUser.fromJson(data['data'] as Map<String, dynamic>);

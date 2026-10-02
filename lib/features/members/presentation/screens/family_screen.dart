@@ -147,6 +147,14 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Reached by pushing /family from the More hub (not a
+                  // bottom-nav tab, unlike Home/Meals/Groceries' identical
+                  // header pattern) -- needs its own way back.
+                  if (Navigator.canPop(context))
+                    IconButton(
+                      icon: const Icon(LucideIcons.arrowLeft),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

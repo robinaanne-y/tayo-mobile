@@ -18,7 +18,6 @@ import '../../../../shared/screens/coming_soon_screen.dart';
 import '../../../announcements/domain/announcement.dart';
 import '../../../announcements/presentation/announcement_providers.dart';
 import '../../../auth/presentation/providers/auth_controller.dart';
-import '../../../auth/presentation/screens/profile_screen.dart';
 import '../../../calendar/domain/event.dart';
 import '../../../calendar/presentation/providers/event_providers.dart';
 import '../../../family_notes/domain/family_note.dart';
@@ -2001,11 +2000,17 @@ class _MoreRow extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: _MoreTile(
-            icon: LucideIcons.user,
+            icon: LucideIcons.plane,
             color: AppColors.lavender,
-            label: 'Profile',
+            label: 'Trips',
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              MaterialPageRoute(
+                builder: (_) => const ComingSoonScreen(
+                  title: 'Trips',
+                  icon: LucideIcons.plane,
+                  message: 'Planning and tracking family trips is on its way.',
+                ),
+              ),
             ),
           ),
         ),

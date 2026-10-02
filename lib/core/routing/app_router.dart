@@ -16,6 +16,7 @@ import '../../features/members/presentation/screens/activate_member_screen.dart'
 import '../../features/members/presentation/screens/family_screen.dart';
 import '../../features/members/presentation/screens/invite_member_screen.dart';
 import '../../features/requests/presentation/screens/requests_screen.dart';
+import '../../features/settings/presentation/screens/more_screen.dart';
 import 'app_shell.dart';
 import 'deep_link_listener.dart';
 
@@ -106,6 +107,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/requests',
         builder: (context, state) => const RequestsScreen(),
       ),
+      // Reached from the More hub, not a bottom-nav tab — same tier as
+      // /requests above.
+      GoRoute(
+        path: '/family',
+        builder: (context, state) => const FamilyScreen(),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             AppShell(navigationShell: navigationShell),
@@ -132,7 +139,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(path: '/family', builder: (context, state) => const FamilyScreen()),
+            GoRoute(path: '/more', builder: (context, state) => const MoreScreen()),
           ]),
         ],
       ),

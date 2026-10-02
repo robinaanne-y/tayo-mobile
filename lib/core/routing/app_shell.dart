@@ -30,7 +30,7 @@ class AppShell extends StatelessWidget {
             icon: Icon(LucideIcons.shoppingBag),
             label: 'Groceries',
           ),
-          NavigationDestination(icon: Icon(LucideIcons.users), label: 'Family'),
+          NavigationDestination(icon: Icon(LucideIcons.menu), label: 'More'),
         ],
       ),
     );

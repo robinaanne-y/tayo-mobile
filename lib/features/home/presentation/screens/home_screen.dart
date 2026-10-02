@@ -23,9 +23,14 @@ import '../../../calendar/domain/event.dart';
 import '../../../calendar/presentation/providers/event_providers.dart';
 import '../../../family_notes/domain/family_note.dart';
 import '../../../family_notes/presentation/family_note_providers.dart';
+import '../../../groceries/presentation/providers/grocery_providers.dart';
 import '../../../households/domain/household.dart';
 import '../../../households/presentation/household_visuals.dart';
 import '../../../households/presentation/providers/household_providers.dart';
+import '../../../meals/domain/meal_plan_item.dart';
+import '../../../meals/domain/meal_request.dart';
+import '../../../meals/presentation/providers/meal_providers.dart';
+import '../../../meals/presentation/screens/meals_screen.dart' show MealRequestDetailSheet;
 import '../../../members/domain/member.dart';
 import '../../../members/presentation/providers/member_providers.dart';
 import '../../../requests/domain/permission_request.dart';
@@ -69,24 +74,160 @@ const _weekdayNames = [
   'Sunday',
 ];
 
-/// Requests currently needing this viewer's attention — either a pending
-/// request they can act on (an Owner/Adult, never their own request;
-/// mirrors the API policy's `actOnRequest`, using the same raw-string role
-/// comparison already used elsewhere on this screen: `myRole == 'owner' ||
-/// myRole == 'adult'`), or one of their own requests that was just
-/// approved/declined and they haven't opened since (the API's
-/// viewer-relative `needs_requester_attention` field already does this
-/// check server-side, scoped to whoever the request was fetched as).
-List<PermissionRequest> _attentionRequests(
-  List<PermissionRequest> requests, {
+/// Mirrors `MealsScreen`'s own `_canManageMeals`: when the household has
+/// designated a meal approver, that one member fully replaces the role
+/// check, so a plain Owner/Adult who isn't the approver must NOT be shown
+/// as able to act on a meal request here either.
+bool _canManageMealsFor(Household? household, int? myMemberId) {
+  if (household == null) return false;
+  final approverId = household.mealApproverMemberId;
+  if (approverId != null) return myMemberId == approverId;
+  return household.myRole == 'owner' || household.myRole == 'adult';
+}
+
+/// A normalized "needs my attention" row — permission requests and meal
+/// requests have different domain models and detail sheets, but Home shows
+/// them in one combined list (the bell sheet, "Needs Your Attention"), so
+/// each gets mapped to this shape rather than merging the two models.
+/// `onApprove`/`onDecline` are null for a row the viewer can't act on (it's
+/// their own request, surfaced only so they notice the outcome) — the card
+/// then shows a single "Review" affordance instead of the three-button row.
+class _AttentionItem {
+  const _AttentionItem({
+    required this.icon,
+    required this.iconBackground,
+    required this.description,
+    required this.onReview,
+    this.onApprove,
+    this.onDecline,
+  });
+
+  final IconData icon;
+  final Color iconBackground;
+  final String description;
+  final Future<void> Function(BuildContext context, WidgetRef ref) onReview;
+  final Future<void> Function(BuildContext context, WidgetRef ref)? onApprove;
+  final Future<void> Function(BuildContext context, WidgetRef ref)? onDecline;
+
+  bool get canAct => onApprove != null && onDecline != null;
+}
+
+_AttentionItem _permissionAttentionItem(PermissionRequest request, {required bool canActOnIt}) {
+  Future<void> review(BuildContext context, WidgetRef ref) async {
+    final household = ref.read(currentHouseholdProvider);
+    if (household == null) return;
+    await showAppBottomSheet<bool>(
+      context: context,
+      builder: (context) => RequestDetailSheet(householdId: household.id, request: request),
+    );
+    // Unconditional: viewing a resolved request silently acknowledges it,
+    // which this caller has no explicit signal for.
+    ref.invalidate(currentHouseholdRequestsProvider);
+  }
+
+  Future<void> respond(WidgetRef ref, {required bool approve}) async {
+    final household = ref.read(currentHouseholdProvider);
+    if (household == null) return;
+    final repository = ref.read(permissionRequestRepositoryProvider);
+    if (approve) {
+      await repository.approve(householdId: household.id, requestId: request.id);
+    } else {
+      await repository.decline(householdId: household.id, requestId: request.id);
+    }
+    ref.invalidate(currentHouseholdRequestsProvider);
+  }
+
+  final description = request.status == RequestStatus.pending
+      ? '${request.requesterName} requested permission for "${request.title}"'
+      : 'Your request "${request.title}" was '
+          '${request.status == RequestStatus.approved ? 'approved' : 'declined'}';
+
+  return _AttentionItem(
+    icon: LucideIcons.shield,
+    iconBackground: AppColors.coral,
+    description: description,
+    onReview: review,
+    onApprove: canActOnIt ? (context, ref) => respond(ref, approve: true) : null,
+    onDecline: canActOnIt ? (context, ref) => respond(ref, approve: false) : null,
+  );
+}
+
+_AttentionItem _mealAttentionItem(MealRequest request, {required bool canActOnIt}) {
+  Future<void> review(BuildContext context, WidgetRef ref) async {
+    final household = ref.read(currentHouseholdProvider);
+    if (household == null) return;
+    await showAppBottomSheet<bool>(
+      context: context,
+      builder: (context) => MealRequestDetailSheet(householdId: household.id, request: request),
+    );
+    ref.invalidate(currentHouseholdMealRequestsProvider);
+    // Approving can create/update a meal plan item for today.
+    ref.invalidate(currentHouseholdTodaysMealsProvider);
+  }
+
+  Future<void> respond(WidgetRef ref, {required bool approve}) async {
+    final household = ref.read(currentHouseholdProvider);
+    if (household == null) return;
+    final repository = ref.read(mealRequestRepositoryProvider);
+    if (approve) {
+      await repository.approve(householdId: household.id, requestId: request.id);
+    } else {
+      await repository.decline(householdId: household.id, requestId: request.id);
+    }
+    ref.invalidate(currentHouseholdMealRequestsProvider);
+    ref.invalidate(currentHouseholdTodaysMealsProvider);
+  }
+
+  final description = request.status == RequestStatus.pending
+      ? '${request.requesterName} requested ${request.title} for '
+          '${_homeMealSlotLabel(request.requestedSlot).toLowerCase()}'
+      : 'Your meal request "${request.title}" was '
+          '${request.status == RequestStatus.approved ? 'approved' : 'declined'}';
+
+  return _AttentionItem(
+    icon: LucideIcons.utensils,
+    iconBackground: AppColors.lavender,
+    description: description,
+    onReview: review,
+    onApprove: canActOnIt ? (context, ref) => respond(ref, approve: true) : null,
+    onDecline: canActOnIt ? (context, ref) => respond(ref, approve: false) : null,
+  );
+}
+
+/// Combines permission requests and meal requests currently needing this
+/// viewer's attention — either a pending one they can act on, or one of
+/// their own that was just approved/declined and they haven't opened since
+/// (the API's viewer-relative `needs_requester_attention` field already
+/// does this check server-side). Permission requests and meal requests use
+/// different "can manage" rules (meal requests respect a per-household
+/// approver override — see `_canManageMealsFor`), so each list is checked
+/// against its own flag rather than one shared one.
+List<_AttentionItem> _combinedAttentionItems({
+  required List<PermissionRequest> permissionRequests,
+  required List<MealRequest> mealRequests,
   required int? myMemberId,
-  required bool canManage,
+  required bool canManagePermissions,
+  required bool canManageMeals,
 }) {
-  return requests.where((r) {
+  final items = <_AttentionItem>[];
+
+  for (final r in permissionRequests) {
     final canActOnIt =
-        canManage && r.status == RequestStatus.pending && r.requesterMemberId != myMemberId;
-    return canActOnIt || r.needsRequesterAttention;
-  }).toList();
+        canManagePermissions && r.status == RequestStatus.pending && r.requesterMemberId != myMemberId;
+    if (canActOnIt || r.needsRequesterAttention) {
+      items.add(_permissionAttentionItem(r, canActOnIt: canActOnIt));
+    }
+  }
+
+  for (final r in mealRequests) {
+    final canActOnIt =
+        canManageMeals && r.status == RequestStatus.pending && r.requesterMemberId != myMemberId;
+    if (canActOnIt || r.needsRequesterAttention) {
+      items.add(_mealAttentionItem(r, canActOnIt: canActOnIt));
+    }
+  }
+
+  return items;
 }
 
 const _monthNames = [
@@ -136,13 +277,14 @@ class HomeScreen extends ConsumerWidget {
     final myMemberId = ref.watch(authControllerProvider).user?.member?.id;
     final canManage = household?.myRole == 'owner' || household?.myRole == 'adult';
     final allRequests = ref.watch(currentHouseholdRequestsProvider).valueOrNull;
-    final actionableCount = allRequests != null
-        ? _attentionRequests(
-            allRequests,
-            myMemberId: myMemberId,
-            canManage: canManage,
-          ).length
-        : 0;
+    final allMealRequests = ref.watch(currentHouseholdMealRequestsProvider).valueOrNull;
+    final actionableCount = _combinedAttentionItems(
+      permissionRequests: allRequests ?? const [],
+      mealRequests: allMealRequests ?? const [],
+      myMemberId: myMemberId,
+      canManagePermissions: canManage,
+      canManageMeals: _canManageMealsFor(household, myMemberId),
+    ).length;
 
     return Scaffold(
       body: SafeArea(
@@ -276,35 +418,9 @@ class HomeScreen extends ConsumerWidget {
                   const SizedBox(height: 24),
                   const _AnnouncementsSection(),
                   const SizedBox(height: 24),
-                  _SectionHeaderRow(
-                    title: "Today's Meals",
-                    actionLabel: 'Request meal',
-                    onAction: () => context.go('/meals'),
-                  ),
-                  const SizedBox(height: 8),
-                  _EmptyStateCard(
-                    emoji: '🍽️',
-                    title: 'No meals planned yet',
-                    message: "Your family hasn't planned dinner yet. Set up "
-                        "this week's meal schedule.",
-                    buttonLabel: 'Plan meals',
-                    onPressed: () => context.go('/meals'),
-                  ),
+                  const _TodaysMealsSection(),
                   const SizedBox(height: 24),
-                  _SectionHeaderRow(
-                    title: 'Groceries',
-                    actionLabel: 'View list',
-                    onAction: () => context.go('/groceries'),
-                  ),
-                  const SizedBox(height: 8),
-                  _EmptyStateCard(
-                    emoji: '🛒',
-                    title: 'No groceries yet',
-                    message: 'Start your shared grocery list so the whole '
-                        'family can chip in.',
-                    buttonLabel: 'Add items',
-                    onPressed: () => context.go('/groceries'),
-                  ),
+                  const _GroceriesSection(),
                   const SizedBox(height: 24),
                   Text('Upcoming Trip', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
@@ -350,9 +466,16 @@ class _SectionHeaderRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: Theme.of(context).textTheme.titleMedium),
+        Expanded(
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+        ),
+        const SizedBox(width: 8),
         TextButton(
           onPressed: onAction,
           style: TextButton.styleFrom(
@@ -498,11 +621,18 @@ class _TodayEventTile extends StatelessWidget {
         children: [
           SizedBox(
             width: 64,
-            child: Text(
-              DateFormat.jm().format(event.startAt),
-              style: Theme.of(context).textTheme.bodySmall,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                DateFormat.jm().format(event.startAt),
+                maxLines: 1,
+                softWrap: false,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ),
           ),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               event.title,
@@ -528,177 +658,99 @@ class _TodayEventTile extends StatelessWidget {
   }
 }
 
-/// Needs Your Attention: permission requests the viewer should look at —
-/// either a pending one they (an Owner/Adult, never the requester) can act
-/// on, or one of their own that was just approved/declined. Backed by the
-/// full `households/{household}/requests` list rather than a status
-/// filter, since the second category can be any status. Tapping a row
-/// opens the same detail sheet the full Requests screen uses, which also
-/// acknowledges a resolved request on open, clearing it from here.
-class _PendingRequestsSection extends ConsumerWidget {
-  const _PendingRequestsSection();
+String _homeMealSlotLabel(MealSlot slot) => switch (slot) {
+      MealSlot.breakfast => 'Breakfast',
+      MealSlot.lunch => 'Lunch',
+      MealSlot.dinner => 'Dinner',
+    };
+
+IconData _homeMealSlotIcon(MealSlot slot) => switch (slot) {
+      MealSlot.breakfast => LucideIcons.coffee,
+      MealSlot.lunch => LucideIcons.sandwich,
+      MealSlot.dinner => LucideIcons.utensils,
+    };
+
+/// Today's Meals: real data, backed by `households/{household}/meal-plan-
+/// items` filtered to today, same pattern as `_TodaysScheduleSection`.
+/// Browsing/editing other days happens on the full Meals screen.
+class _TodaysMealsSection extends ConsumerWidget {
+  const _TodaysMealsSection();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final requestsAsync = ref.watch(currentHouseholdRequestsProvider);
-    final household = ref.watch(currentHouseholdProvider);
-    final myMemberId = ref.watch(authControllerProvider).user?.member?.id;
-    final canManage = household?.myRole == 'owner' || household?.myRole == 'adult';
-
-    return requestsAsync.when(
-      data: (requests) {
-        final attention = _attentionRequests(requests, myMemberId: myMemberId, canManage: canManage);
-
-        if (attention.isEmpty) {
-          return const _EmptyStateCard(
-            emoji: '✅',
-            title: "You're all caught up",
-            message: 'Permission requests from the family will show '
-                'up here for you to review.',
-          );
-        }
-
-        return AppCard(
-          padding: EdgeInsets.zero,
-          onTap: () => context.push('/requests'),
-          child: Column(
-            children: [
-              for (final entry in attention.take(3).toList().asMap().entries) ...[
-                if (entry.key > 0) const Divider(height: 1),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Row(
-                    children: [
-                      Icon(
-                        entry.value.status == RequestStatus.pending
-                            ? LucideIcons.shield
-                            : entry.value.status == RequestStatus.approved
-                                ? LucideIcons.checkCircle
-                                : LucideIcons.xCircle,
-                        size: 18,
-                        color: context.colors.primary,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(entry.value.title, style: Theme.of(context).textTheme.bodyMedium),
-                            Text(
-                              entry.value.status == RequestStatus.pending
-                                  ? entry.value.requesterName
-                                  : entry.value.status == RequestStatus.approved
-                                      ? 'Approved'
-                                      : 'Declined',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ],
-          ),
-        );
-      },
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 24),
-        child: Center(child: CircularProgressIndicator()),
-      ),
-      error: (error, stack) => const _EmptyStateCard(
-        emoji: '✅',
-        title: "Couldn't load requests",
-        message: 'Pull to refresh or try again shortly.',
-      ),
-    );
-  }
-}
-
-/// The header bell's target — a personal, scoped view of what needs this
-/// viewer's attention (mirrors `_attentionRequests`/`_PendingRequestsSection`
-/// above), as opposed to the "Permissions" tile which opens the full
-/// household-wide Requests management screen regardless of viewer. Pops
-/// with the string 'view-all' if the viewer wants that fuller screen
-/// instead — the caller (the bell's onPressed) pushes `/requests` for it,
-/// the same pop-then-caller-acts pattern `_HouseholdSwitcherSheet` uses.
-class _NotificationsSheet extends ConsumerWidget {
-  const _NotificationsSheet();
-
-  Future<void> _openDetail(BuildContext context, WidgetRef ref, int householdId, PermissionRequest request) async {
-    await showAppBottomSheet<bool>(
-      context: context,
-      builder: (context) => RequestDetailSheet(householdId: householdId, request: request),
-    );
-    // Unconditional for the same reason as RequestsScreen's own
-    // _openDetailSheet: viewing a resolved request silently acknowledges
-    // it, which this caller has no explicit signal for.
-    ref.invalidate(currentHouseholdRequestsProvider);
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final requestsAsync = ref.watch(currentHouseholdRequestsProvider);
-    final household = ref.watch(currentHouseholdProvider);
-    final myMemberId = ref.watch(authControllerProvider).user?.member?.id;
-    final canManage = household?.myRole == 'owner' || household?.myRole == 'adult';
+    final mealsAsync = ref.watch(currentHouseholdTodaysMealsProvider);
 
     return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Notifications', style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 16),
-        requestsAsync.when(
-          data: (requests) {
-            final attention = _attentionRequests(requests, myMemberId: myMemberId, canManage: canManage);
-
-            if (attention.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Text(
-                  "You're all caught up.",
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
+        _SectionHeaderRow(
+          title: "Today's Meals",
+          actionLabel: 'Request meal',
+          onAction: () => context.go('/meals'),
+        ),
+        const SizedBox(height: 8),
+        mealsAsync.when(
+          data: (items) {
+            if (items.isEmpty) {
+              return _EmptyStateCard(
+                emoji: '🍽️',
+                title: 'No meals planned yet',
+                message: "Your family hasn't planned today's meals yet.",
+                buttonLabel: 'Plan meals',
+                onPressed: () => context.go('/meals'),
               );
             }
 
-            return Column(
-              children: [
-                for (final request in attention)
-                  InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: household == null
-                        ? null
-                        : () => _openDetail(context, ref, household.id, request),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+            final bySlot = {for (final item in items) item.slot: item};
+
+            return AppCard(
+              padding: EdgeInsets.zero,
+              onTap: () => context.go('/meals'),
+              child: Column(
+                children: [
+                  for (final entry in MealSlot.values.asMap().entries) ...[
+                    if (entry.key > 0) const Divider(height: 1),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       child: Row(
                         children: [
-                          Icon(
-                            request.status == RequestStatus.pending
-                                ? LucideIcons.shield
-                                : request.status == RequestStatus.approved
-                                    ? LucideIcons.checkCircle
-                                    : LucideIcons.xCircle,
-                            size: 18,
-                            color: context.colors.primary,
+                          Container(
+                            width: 36,
+                            height: 36,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: context.colors.primary.withValues(alpha: 0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              _homeMealSlotIcon(entry.value),
+                              color: context.colors.primary,
+                              size: 16,
+                            ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(request.title, style: Theme.of(context).textTheme.bodyMedium),
                                 Text(
-                                  request.status == RequestStatus.pending
-                                      ? request.requesterName
-                                      : request.status == RequestStatus.approved
-                                          ? 'Approved'
-                                          : 'Declined',
-                                  style: Theme.of(context).textTheme.bodySmall,
+                                  _homeMealSlotLabel(entry.value).toUpperCase(),
+                                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                        color: context.colors.textSecondary,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 0.4,
+                                      ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  bySlot[entry.value]?.title ?? '—',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        color: bySlot[entry.value] == null
+                                            ? context.colors.textSecondary
+                                            : null,
+                                      ),
                                 ),
                               ],
                             ),
@@ -706,22 +758,391 @@ class _NotificationsSheet extends ConsumerWidget {
                         ],
                       ),
                     ),
-                  ),
-              ],
+                  ],
+                ],
+              ),
             );
           },
           loading: () => const Padding(
             padding: EdgeInsets.symmetric(vertical: 24),
             child: Center(child: CircularProgressIndicator()),
           ),
-          error: (error, stack) => Padding(
+          error: (error, stack) => _EmptyStateCard(
+            emoji: '🍽️',
+            title: "Couldn't load today's meals",
+            message: 'Pull to refresh or try again shortly.',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Groceries: real data, backed by `households/{household}/grocery-items` —
+/// shows a single summary row (count left to buy) rather than the full
+/// list, which lives on the Groceries screen.
+class _GroceriesSection extends ConsumerWidget {
+  const _GroceriesSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final itemsAsync = ref.watch(currentHouseholdGroceryItemsProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SectionHeaderRow(
+          title: 'Groceries',
+          actionLabel: 'View list',
+          onAction: () => context.go('/groceries'),
+        ),
+        const SizedBox(height: 8),
+        itemsAsync.when(
+          data: (items) {
+            if (items.isEmpty) {
+              return _EmptyStateCard(
+                emoji: '🛒',
+                title: 'No groceries yet',
+                message: 'Start your shared grocery list so the whole '
+                    'family can chip in.',
+                buttonLabel: 'Add items',
+                onPressed: () => context.go('/groceries'),
+              );
+            }
+
+            final unpurchased = items.where((i) => !i.isPurchased).toList();
+            final categories = unpurchased.map((i) => i.category).whereType<String>().toSet().toList();
+            const maxTags = 5;
+            final shownCategories = categories.take(maxTags).toList();
+            final remaining = categories.length - shownCategories.length;
+
+            return AppCard(
+              onTap: () => context.go('/groceries'),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(LucideIcons.shoppingBag, color: context.colors.primary),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          unpurchased.isEmpty
+                              ? 'Everything is checked off'
+                              : '${unpurchased.length} item${unpurchased.length == 1 ? '' : 's'} left to buy',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ),
+                      Icon(LucideIcons.chevronRight, size: 18, color: context.colors.textSecondary),
+                    ],
+                  ),
+                  if (shownCategories.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final category in shownCategories) _GroceryTag(label: category),
+                        if (remaining > 0) _GroceryTag(label: '+$remaining more'),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            );
+          },
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (error, stack) => _EmptyStateCard(
+            emoji: '🛒',
+            title: "Couldn't load groceries",
+            message: 'Pull to refresh or try again shortly.',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GroceryTag extends StatelessWidget {
+  const _GroceryTag({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: context.colors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context)
+            .textTheme
+            .labelSmall
+            ?.copyWith(color: context.colors.primary, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+}
+
+/// Needs Your Attention: permission requests AND meal requests the viewer
+/// should look at, each its own single-row card with inline Approve/
+/// Review/Decline actions — not grouped inside one card whose whole area
+/// used to navigate to the (permission-only) Requests screen regardless of
+/// which item, or what type, was actually tapped. A capped-at-3 preview;
+/// "See all" (added below once there are more) would go to the full list.
+class _PendingRequestsSection extends ConsumerWidget {
+  const _PendingRequestsSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final requestsAsync = ref.watch(currentHouseholdRequestsProvider);
+    final mealRequestsAsync = ref.watch(currentHouseholdMealRequestsProvider);
+    final household = ref.watch(currentHouseholdProvider);
+    final myMemberId = ref.watch(authControllerProvider).user?.member?.id;
+    final canManage = household?.myRole == 'owner' || household?.myRole == 'adult';
+
+    if (requestsAsync.isLoading || mealRequestsAsync.isLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (requestsAsync.hasError || mealRequestsAsync.hasError) {
+      return const _EmptyStateCard(
+        emoji: '✅',
+        title: "Couldn't load requests",
+        message: 'Pull to refresh or try again shortly.',
+      );
+    }
+
+    final attention = _combinedAttentionItems(
+      permissionRequests: requestsAsync.valueOrNull ?? const [],
+      mealRequests: mealRequestsAsync.valueOrNull ?? const [],
+      myMemberId: myMemberId,
+      canManagePermissions: canManage,
+      canManageMeals: _canManageMealsFor(household, myMemberId),
+    );
+
+    if (attention.isEmpty) {
+      return const _EmptyStateCard(
+        emoji: '✅',
+        title: "You're all caught up",
+        message: 'Permission and meal requests from the family will show '
+            'up here for you to review.',
+      );
+    }
+
+    return Column(
+      children: [
+        for (final item in attention.take(3)) ...[
+          _AttentionItemCard(item: item),
+          const SizedBox(height: 10),
+        ],
+      ],
+    );
+  }
+}
+
+/// A single "needs your attention" row: an icon avatar, the description
+/// sentence, and either a three-button Approve/Review/Decline row (when
+/// the viewer can act) or a single Review button (the viewer's own
+/// request, surfaced just so they notice the outcome).
+class _AttentionItemCard extends ConsumerWidget {
+  const _AttentionItemCard({required this.item});
+
+  final _AttentionItem item;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: context.colors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.colors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: item.iconBackground.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(item.icon, size: 16, color: item.iconBackground),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(item.description, style: Theme.of(context).textTheme.bodyMedium),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              if (item.canAct) ...[
+                Expanded(
+                  child: _AttentionPillButton(
+                    label: 'Approve',
+                    background: context.colors.primary,
+                    foreground: context.colors.primaryForeground,
+                    onPressed: () => item.onApprove!(context, ref),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Expanded(
+                child: _AttentionPillButton(
+                  label: 'Review',
+                  background: context.colors.primary.withValues(alpha: 0.12),
+                  foreground: context.colors.primary,
+                  onPressed: () => item.onReview(context, ref),
+                ),
+              ),
+              if (item.canAct) ...[
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _AttentionPillButton(
+                    label: 'Decline',
+                    background: context.colors.error.withValues(alpha: 0.12),
+                    foreground: context.colors.error,
+                    onPressed: () => item.onDecline!(context, ref),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AttentionPillButton extends StatelessWidget {
+  const _AttentionPillButton({
+    required this.label,
+    required this.background,
+    required this.foreground,
+    required this.onPressed,
+  });
+
+  final String label;
+  final Color background;
+  final Color foreground;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: background,
+        foregroundColor: foreground,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+        textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(label, maxLines: 1, softWrap: false),
+      ),
+    );
+  }
+}
+
+/// The header bell's target — a personal, scoped view of what needs this
+/// viewer's attention (mirrors `_combinedAttentionItems`/
+/// `_PendingRequestsSection` above, now covering meal requests too), as
+/// opposed to the "Permissions" tile which opens the full household-wide
+/// Requests management screen regardless of viewer. Pops with the string
+/// 'view-all' if the viewer wants that fuller screen instead — the caller
+/// (the bell's onPressed) pushes `/requests` for it, the same
+/// pop-then-caller-acts pattern `_HouseholdSwitcherSheet` uses.
+class _NotificationsSheet extends ConsumerWidget {
+  const _NotificationsSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final requestsAsync = ref.watch(currentHouseholdRequestsProvider);
+    final mealRequestsAsync = ref.watch(currentHouseholdMealRequestsProvider);
+    final household = ref.watch(currentHouseholdProvider);
+    final myMemberId = ref.watch(authControllerProvider).user?.member?.id;
+    final canManage = household?.myRole == 'owner' || household?.myRole == 'adult';
+    final canManageMeals = _canManageMealsFor(household, myMemberId);
+
+    final isLoading = requestsAsync.isLoading || mealRequestsAsync.isLoading;
+    final hasError = requestsAsync.hasError || mealRequestsAsync.hasError;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Notifications', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 16),
+        if (isLoading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (hasError)
+          Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: Text(
               "Couldn't load notifications.",
               style: Theme.of(context).textTheme.bodyMedium,
             ),
+          )
+        else
+          Builder(
+            builder: (context) {
+              final attention = _combinedAttentionItems(
+                permissionRequests: requestsAsync.valueOrNull ?? const [],
+                mealRequests: mealRequestsAsync.valueOrNull ?? const [],
+                myMemberId: myMemberId,
+                canManagePermissions: canManage,
+                canManageMeals: canManageMeals,
+              );
+
+              if (attention.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Text(
+                    "You're all caught up.",
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                );
+              }
+
+              return Column(
+                children: [
+                  for (final item in attention) ...[
+                    _AttentionItemCard(item: item),
+                    const SizedBox(height: 10),
+                  ],
+                ],
+              );
+            },
           ),
-        ),
         const SizedBox(height: 8),
         SizedBox(
           width: double.infinity,

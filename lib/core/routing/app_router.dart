@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -8,14 +7,15 @@ import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/welcome_screen.dart';
 import '../../features/calendar/presentation/screens/calendar_screen.dart';
+import '../../features/groceries/presentation/screens/groceries_screen.dart';
 import '../../features/households/presentation/screens/create_household_screen.dart';
 import '../../features/households/presentation/screens/join_household_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/meals/presentation/screens/meals_screen.dart';
 import '../../features/members/presentation/screens/activate_member_screen.dart';
 import '../../features/members/presentation/screens/family_screen.dart';
 import '../../features/members/presentation/screens/invite_member_screen.dart';
 import '../../features/requests/presentation/screens/requests_screen.dart';
-import '../../shared/screens/coming_soon_screen.dart';
 import 'app_shell.dart';
 import 'deep_link_listener.dart';
 
@@ -122,21 +122,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [
             GoRoute(
               path: '/meals',
-              builder: (context, state) => const ComingSoonScreen(
-                title: 'Meals',
-                icon: LucideIcons.utensils,
-                message: 'Weekly meal planning is on its way.',
-              ),
+              builder: (context, state) => const MealsScreen(),
             ),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
               path: '/groceries',
-              builder: (context, state) => const ComingSoonScreen(
-                title: 'Groceries',
-                icon: LucideIcons.shoppingBag,
-                message: 'A shared grocery list is on its way.',
-              ),
+              builder: (context, state) => const GroceriesScreen(),
             ),
           ]),
           StatefulShellBranch(routes: [

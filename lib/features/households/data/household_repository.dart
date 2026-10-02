@@ -37,11 +37,18 @@ class HouseholdRepository {
     String? name,
     String? color,
     String? emoji,
+    int? mealApproverMemberId,
+    // The conditional-send pattern above can't express "send an
+    // explicit null" to clear a field, so clearing the approver needs
+    // its own flag.
+    bool clearMealApprover = false,
   }) async {
     final response = await _apiClient.patch('/households/$householdId', data: {
       if (name != null) 'name': name,
       if (color != null) 'color': color,
       if (emoji != null) 'emoji': emoji,
+      if (mealApproverMemberId != null) 'meal_approver_member_id': mealApproverMemberId,
+      if (clearMealApprover) 'meal_approver_member_id': null,
     });
     return Household.fromJson(
       (response.data as Map<String, dynamic>)['data'] as Map<String, dynamic>,

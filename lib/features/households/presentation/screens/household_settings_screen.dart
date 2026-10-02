@@ -7,6 +7,7 @@ import '../../../../core/theme/app_color_tokens.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../auth/presentation/providers/auth_controller.dart';
+import '../../../members/presentation/providers/member_providers.dart';
 import '../../domain/household.dart';
 import '../household_visuals.dart';
 import '../providers/household_providers.dart';
@@ -26,6 +27,7 @@ class _HouseholdSettingsScreenState
   late final TextEditingController _nameController;
   late Color _color;
   late String _emoji;
+  late int? _mealApproverMemberId;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -38,6 +40,7 @@ class _HouseholdSettingsScreenState
     _nameController = TextEditingController(text: widget.household.name);
     _color = householdColorFromHex(context, widget.household.color);
     _emoji = widget.household.emoji ?? kHouseholdEmojis.first;
+    _mealApproverMemberId = widget.household.mealApproverMemberId;
   }
 
   @override
@@ -60,6 +63,8 @@ class _HouseholdSettingsScreenState
             name: _nameController.text.trim(),
             color: householdColorToHex(_color),
             emoji: _emoji,
+            mealApproverMemberId: _mealApproverMemberId,
+            clearMealApprover: _mealApproverMemberId == null,
           );
       await ref.read(authControllerProvider.notifier).refreshUser();
       if (mounted) Navigator.of(context).pop();
@@ -172,6 +177,52 @@ class _HouseholdSettingsScreenState
               );
             }).toList(),
           ),
+          const SizedBox(height: 20),
+          Text('Meal approver', style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 4),
+          Text(
+            'This member manages the meal plan and approves requests '
+            'directly. Everyone else, including other adults, must '
+            'submit a request.',
+            style: Theme.of(context)
+                .textTheme
+                .labelMedium
+                ?.copyWith(color: context.colors.textSecondary),
+          ),
+          const SizedBox(height: 8),
+          Consumer(
+            builder: (context, ref, child) {
+              final membersAsync = ref.watch(currentHouseholdMembersProvider);
+
+              return membersAsync.when(
+                data: (members) => Column(
+                  children: [
+                    _ApproverOptionTile(
+                      label: 'No approver — any Owner/Adult manages',
+                      selected: _mealApproverMemberId == null,
+                      enabled: _isOwner,
+                      onTap: () => setState(() => _mealApproverMemberId = null),
+                    ),
+                    const SizedBox(height: 8),
+                    for (final member in members) ...[
+                      _ApproverOptionTile(
+                        label: member.name,
+                        selected: _mealApproverMemberId == member.id,
+                        enabled: _isOwner,
+                        onTap: () => setState(() => _mealApproverMemberId = member.id),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ],
+                ),
+                loading: () => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (error, stack) => const SizedBox.shrink(),
+              );
+            },
+          ),
           if (_isOwner) ...[
             const SizedBox(height: 24),
             PrimaryButton(
@@ -181,6 +232,47 @@ class _HouseholdSettingsScreenState
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _ApproverOptionTile extends StatelessWidget {
+  const _ApproverOptionTile({
+    required this.label,
+    required this.selected,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: enabled ? onTap : null,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: selected ? context.colors.primary.withValues(alpha: 0.08) : context.colors.background,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? context.colors.primary.withValues(alpha: 0.4) : context.colors.border,
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
+            ),
+            if (selected) Icon(LucideIcons.check, color: context.colors.primary, size: 18),
+          ],
+        ),
       ),
     );
   }

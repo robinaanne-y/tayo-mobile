@@ -78,28 +78,43 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               children: [
                 Text('Appearance', style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(height: 8),
-                SegmentedButton<ThemeMode>(
-                  segments: const [
-                    ButtonSegment(
-                      value: ThemeMode.light,
-                      label: Text('Light'),
-                      icon: Icon(LucideIcons.sun),
+                Theme(
+                  data: Theme.of(context).copyWith(visualDensity: VisualDensity.compact),
+                  child: SegmentedButton<ThemeMode>(
+                    style: SegmentedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
                     ),
-                    ButtonSegment(
-                      value: ThemeMode.dark,
-                      label: Text('Dark'),
-                      icon: Icon(LucideIcons.moon),
-                    ),
-                    ButtonSegment(
-                      value: ThemeMode.system,
-                      label: Text('System'),
-                      icon: Icon(LucideIcons.monitor),
-                    ),
-                  ],
-                  selected: {themeMode},
-                  onSelectionChanged: (selection) => ref
-                      .read(themeModeProvider.notifier)
-                      .setThemeMode(selection.first),
+                    segments: const [
+                      ButtonSegment(
+                        value: ThemeMode.light,
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('Light', maxLines: 1, softWrap: false),
+                        ),
+                        icon: Icon(LucideIcons.sun, size: 16),
+                      ),
+                      ButtonSegment(
+                        value: ThemeMode.dark,
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('Dark', maxLines: 1, softWrap: false),
+                        ),
+                        icon: Icon(LucideIcons.moon, size: 16),
+                      ),
+                      ButtonSegment(
+                        value: ThemeMode.system,
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('System', maxLines: 1, softWrap: false),
+                        ),
+                        icon: Icon(LucideIcons.monitor, size: 16),
+                      ),
+                    ],
+                    selected: {themeMode},
+                    onSelectionChanged: (selection) => ref
+                        .read(themeModeProvider.notifier)
+                        .setThemeMode(selection.first),
+                  ),
                 ),
                 const SizedBox(height: 24),
                 if (_errorMessage != null) ...[

@@ -100,6 +100,12 @@ class MoreScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             _MoreListTile(
+              icon: LucideIcons.checkCircle,
+              label: 'Tasks & chores',
+              onTap: () => context.push('/tasks'),
+            ),
+            const SizedBox(height: 8),
+            _MoreListTile(
               icon: LucideIcons.settings,
               label: 'Household settings',
               onTap: household == null

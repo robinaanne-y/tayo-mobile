@@ -112,4 +112,9 @@ class AuthController extends Notifier<AuthState> {
     final user = await _repo.updateProfile(name: name, email: email);
     state = state.copyWith(status: AuthStatus.authenticated, user: user);
   }
+
+  Future<void> updateDefaultHousehold({required int? householdId}) async {
+    final user = await _repo.updateDefaultHousehold(householdId: householdId);
+    state = state.copyWith(status: AuthStatus.authenticated, user: user);
+  }
 }

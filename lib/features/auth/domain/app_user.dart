@@ -8,6 +8,7 @@ class AppUser {
     required this.email,
     this.member,
     this.households = const [],
+    this.defaultHouseholdId,
   });
 
   final int id;
@@ -15,6 +16,10 @@ class AppUser {
   final String email;
   final Member? member;
   final List<Household> households;
+
+  /// The household the app should open to by default, when set — see
+  /// `currentHouseholdProvider`'s fallback chain.
+  final int? defaultHouseholdId;
 
   factory AppUser.fromJson(Map<String, dynamic> json) {
     return AppUser(
@@ -29,6 +34,7 @@ class AppUser {
               .map((h) => Household.fromJson(h as Map<String, dynamic>))
               .toList()
           : const [],
+      defaultHouseholdId: json['default_household_id'] as int?,
     );
   }
 }

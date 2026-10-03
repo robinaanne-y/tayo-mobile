@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/networking/api_exception.dart';
-import '../../../../core/theme/theme_mode_controller.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../providers/auth_controller.dart';
@@ -65,8 +63,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final themeMode = ref.watch(themeModeProvider);
-
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
       body: SafeArea(
@@ -76,47 +72,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             key: _formKey,
             child: ListView(
               children: [
-                Text('Appearance', style: Theme.of(context).textTheme.bodySmall),
-                const SizedBox(height: 8),
-                Theme(
-                  data: Theme.of(context).copyWith(visualDensity: VisualDensity.compact),
-                  child: SegmentedButton<ThemeMode>(
-                    style: SegmentedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                    ),
-                    segments: const [
-                      ButtonSegment(
-                        value: ThemeMode.light,
-                        label: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text('Light', maxLines: 1, softWrap: false),
-                        ),
-                        icon: Icon(LucideIcons.sun, size: 16),
-                      ),
-                      ButtonSegment(
-                        value: ThemeMode.dark,
-                        label: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text('Dark', maxLines: 1, softWrap: false),
-                        ),
-                        icon: Icon(LucideIcons.moon, size: 16),
-                      ),
-                      ButtonSegment(
-                        value: ThemeMode.system,
-                        label: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text('System', maxLines: 1, softWrap: false),
-                        ),
-                        icon: Icon(LucideIcons.monitor, size: 16),
-                      ),
-                    ],
-                    selected: {themeMode},
-                    onSelectionChanged: (selection) => ref
-                        .read(themeModeProvider.notifier)
-                        .setThemeMode(selection.first),
-                  ),
-                ),
-                const SizedBox(height: 24),
                 if (_errorMessage != null) ...[
                   Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
                   const SizedBox(height: 16),

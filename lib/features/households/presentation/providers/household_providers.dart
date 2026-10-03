@@ -21,11 +21,19 @@ final invitationRepositoryProvider = Provider<InvitationRepository>((ref) {
 final selectedHouseholdIdProvider = StateProvider<int?>((ref) => null);
 
 /// The household every screen should treat as "active" — the user's
-/// switcher pick if it's still one of their households, else the first one.
+/// switcher pick if it's still one of their households; else their
+/// server-persisted default household (Settings → More), if still one of
+/// their households; else the first one.
 final currentHouseholdProvider = Provider<Household?>((ref) {
-  final households = ref.watch(authControllerProvider).user?.households ?? const [];
+  final user = ref.watch(authControllerProvider).user;
+  final households = user?.households ?? const [];
   if (households.isEmpty) return null;
 
   final selectedId = ref.watch(selectedHouseholdIdProvider);
-  return households.where((h) => h.id == selectedId).firstOrNull ?? households.first;
+  final selected = households.where((h) => h.id == selectedId).firstOrNull;
+  if (selected != null) return selected;
+
+  final defaultId = user?.defaultHouseholdId;
+  final defaultHousehold = households.where((h) => h.id == defaultId).firstOrNull;
+  return defaultHousehold ?? households.first;
 });

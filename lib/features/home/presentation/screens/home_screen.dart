@@ -18,7 +18,6 @@ import '../../../../shared/screens/coming_soon_screen.dart';
 import '../../../announcements/domain/announcement.dart';
 import '../../../announcements/presentation/announcement_providers.dart';
 import '../../../auth/presentation/providers/auth_controller.dart';
-import '../../../auth/presentation/screens/profile_screen.dart';
 import '../../../calendar/domain/event.dart';
 import '../../../calendar/presentation/providers/event_providers.dart';
 import '../../../family_notes/domain/family_note.dart';
@@ -36,6 +35,16 @@ import '../../../members/presentation/providers/member_providers.dart';
 import '../../../requests/domain/permission_request.dart';
 import '../../../requests/presentation/providers/permission_request_providers.dart';
 import '../../../requests/presentation/screens/requests_screen.dart' show RequestDetailSheet;
+
+/// `_AttentionItem.id`s the viewer has already seen in the bell sheet, this
+/// app session — the bell badge number only counts items *not* in this set,
+/// so opening the bell clears it even for a request still awaiting the
+/// viewer's action (it becomes a "new since last viewed" counter, not a
+/// "work remaining" counter). "Needs Your Attention" itself is unaffected —
+/// it keeps showing every actionable item regardless of whether it's been
+/// seen, since that section's job is "here's what still needs doing," not
+/// "here's what's new." In-memory only: resets on a fresh app launch.
+final _seenAttentionItemIdsProvider = StateProvider<Set<String>>((ref) => {});
 
 /// Base hues for note cards — a light tint is used as the background, a
 /// darker shade of the same hue as the border, so each note reads as one
@@ -330,13 +339,14 @@ class HomeScreen extends ConsumerWidget {
     final canManage = household?.myRole == 'owner' || household?.myRole == 'adult';
     final allRequests = ref.watch(currentHouseholdRequestsProvider).valueOrNull;
     final allMealRequests = ref.watch(currentHouseholdMealRequestsProvider).valueOrNull;
+    final seenIds = ref.watch(_seenAttentionItemIdsProvider);
     final actionableCount = _actionableAttentionItems(
       permissionRequests: allRequests ?? const [],
       mealRequests: allMealRequests ?? const [],
       myMemberId: myMemberId,
       canManagePermissions: canManage,
       canManageMeals: _canManageMealsFor(household, myMemberId),
-    ).length;
+    ).where((item) => !seenIds.contains(item.id)).length;
 
     return Scaffold(
       body: SafeArea(
@@ -1132,11 +1142,15 @@ class _AttentionPillButton extends StatelessWidget {
 /// (the bell's onPressed) pushes `/requests` for it, the same
 /// pop-then-caller-acts pattern `_HouseholdSwitcherSheet` uses.
 ///
-/// Also shows a "Recently resolved" section for the viewer's own requests
-/// that were just approved/declined — unlike the actionable section above,
-/// these are acknowledged automatically as soon as this sheet renders them
-/// (see `_acknowledgeNewlyVisible`), so simply opening the bell is enough
-/// to clear them from here and from the badge count next time, rather than
+/// Opening this sheet clears the bell badge for *everything* it shows,
+/// actionable or not (see `_onAttentionItemsVisible`) — the badge is a "new
+/// since last viewed" counter, not a "work remaining" counter, so a pending
+/// request the viewer hasn't acted on yet still stops counting once seen
+/// here (it still shows in "Needs Your Attention" and this sheet's
+/// actionable section regardless, since those are about what still needs
+/// doing). Also shows a "Recently resolved" section for the viewer's own
+/// requests that were just approved/declined, which are additionally
+/// acknowledged server-side as soon as this sheet renders them, rather than
 /// requiring a tap into each one's detail sheet.
 class _NotificationsSheet extends ConsumerStatefulWidget {
   const _NotificationsSheet();
@@ -1148,16 +1162,27 @@ class _NotificationsSheet extends ConsumerStatefulWidget {
 class _NotificationsSheetState extends ConsumerState<_NotificationsSheet> {
   final Set<String> _acknowledging = {};
 
-  void _acknowledgeNewlyVisible(List<_AttentionItem> resolved) {
-    final toAcknowledge = resolved.where((item) => !_acknowledging.contains(item.id)).toList();
-    if (toAcknowledge.isEmpty) return;
+  /// Called on every build with whatever's currently visible: marks all of
+  /// it "seen" (clearing the badge for it, actionable or not) and kicks off
+  /// the acknowledge API call for the resolved ones specifically (so they
+  /// stop needing the requester's attention server-side, not just locally).
+  void _onAttentionItemsVisible(List<_AttentionItem> actionable, List<_AttentionItem> resolved) {
+    final visibleIds = {...actionable.map((i) => i.id), ...resolved.map((i) => i.id)};
+    final seenIds = ref.read(_seenAttentionItemIdsProvider);
+    final newlySeen = visibleIds.difference(seenIds);
 
+    final toAcknowledge = resolved.where((item) => !_acknowledging.contains(item.id)).toList();
     for (final item in toAcknowledge) {
       _acknowledging.add(item.id);
     }
 
+    if (newlySeen.isEmpty && toAcknowledge.isEmpty) return;
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      if (newlySeen.isNotEmpty) {
+        ref.read(_seenAttentionItemIdsProvider.notifier).update((state) => {...state, ...newlySeen});
+      }
       for (final item in toAcknowledge) {
         item.onAcknowledge?.call(ref);
       }
@@ -1213,7 +1238,7 @@ class _NotificationsSheetState extends ConsumerState<_NotificationsSheet> {
                 mealRequests: mealRequests,
               );
 
-              _acknowledgeNewlyVisible(resolved);
+              _onAttentionItemsVisible(actionable, resolved);
 
               if (actionable.isEmpty && resolved.isEmpty) {
                 return Padding(
@@ -2001,11 +2026,17 @@ class _MoreRow extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: _MoreTile(
-            icon: LucideIcons.user,
+            icon: LucideIcons.plane,
             color: AppColors.lavender,
-            label: 'Profile',
+            label: 'Trips',
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              MaterialPageRoute(
+                builder: (_) => const ComingSoonScreen(
+                  title: 'Trips',
+                  icon: LucideIcons.plane,
+                  message: 'Planning and tracking family trips is on its way.',
+                ),
+              ),
             ),
           ),
         ),

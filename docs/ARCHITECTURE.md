@@ -1178,9 +1178,11 @@ Flutter widgets should primarily handle presentation and user interaction.
 > exposed as `themeModeProvider`) persists the user's Light/Dark/System
 > choice via `shared_preferences`, defaulting to `system` until the stored
 > value loads. `main.dart` wires `theme`/`darkTheme`/`themeMode` from it.
-> The control lives in `ProfileScreen` (an "Appearance" `SegmentedButton`)
-> — there's no separate Settings screen yet, and Profile already doubles
-> as the closest thing to one.
+> The control lives in `MoreScreen` (an "Appearance" `SegmentedButton`,
+> `lib/features/settings/presentation/screens/more_screen.dart`) — the
+> bottom nav's "More" settings hub, reachable from the 5th tab. It moved
+> there from `ProfileScreen` once the nav restructure gave the app a real
+> settings surface; `ProfileScreen` is back to just name/email editing.
 >
 > A file that mixes theme-dependent and theme-invariant colors in one
 > `const` list (e.g. `household_visuals.dart`'s color-picker palette,
@@ -1704,7 +1706,7 @@ Docker. The automated test suite always uses in-memory sqlite regardless
 (configured in `phpunit.xml`), so `php artisan test` works with zero setup
 either way.
 
-Run tests: `php artisan test` (151 passing).
+Run tests: `php artisan test` (163 passing).
 
 ## Flutter setup
 
@@ -1748,22 +1750,36 @@ Run tests: `flutter test` (5 passing). Static analysis: `flutter analyze`
   stage — see the Home & Family screen redesign work for current visual
   state
 - Full Light/Dark/System theming — see §25 "Foundation note — Theming"
-  above for the `AppColorTokens`/`AppColors` split. Toggle lives in
-  Profile ("Appearance")
+  above for the `AppColorTokens`/`AppColors` split. Toggle lives in the
+  bottom nav's More settings hub ("Appearance")
 - Calendar: event CRUD, Month/Week/Day views, all 4 visibility levels,
   participants, location, daily/weekly/monthly recurrence — see §11
   "Foundation note"
 - Permission requests: create/edit/cancel, adult approve/decline with
   conditions, optional promotion to a calendar event, surfaced on Home
   and via the header bell — see §12 "Foundation note"
-- Meal planning: Owner/Adult sets/clears any day's Breakfast/Lunch/Dinner
-  slot; meal requests (any member requests, adult approves/declines,
-  optionally moved to another day/slot) reuse the same `Approvable`
-  mechanics as permission requests; shared grocery list fully open to
-  every household member including minors. Today's Meals and Groceries
-  on Home are real data, and meal requests needing the viewer's attention
-  are folded into the same header-bell sheet as permission requests —
-  this is the mobile MVP-complete line (Phase 5)
+- Meal planning: Owner/Adult (or a delegated per-household "meal
+  approver", `households.meal_approver_member_id`, if one is set) sets/
+  clears any day's Breakfast/Lunch/Dinner slot on a Monday-starting week,
+  plus a read-only Week Overview grid; meal requests (any member
+  requests, including other adults, manager approves/declines, optionally
+  moved to another day/slot) reuse the same `Approvable` mechanics as
+  permission requests, and auto-expire once their date has passed if
+  still pending. Grocery list: any member (including minors) can add an
+  item and toggle it purchased; editing, deleting, and bulk-clearing
+  purchased items is Owner/Adult-only. Groceries has category filter
+  chips and swipe-to-reveal Edit/Delete (via `flutter_slidable`). Today's
+  Meals and Groceries on Home are real data, and "Needs Your Attention"
+  renders permission and meal requests as individual actionable cards
+  (not grouped), with the header-bell badge clearing once viewed — this
+  is the mobile MVP-complete line (Phase 5)
+- Nav restructure: the bottom nav's 5th tab is a "More" settings hub
+  (Appearance, Default household, Profile, Family, Household settings,
+  Account settings placeholder) rather than a dedicated Family tab; Home's
+  own "More" grid links to a Trips placeholder instead of Profile
+- Default household: server-persisted (`users.default_household_id`),
+  settable from More → Default household; the first household a user
+  creates becomes their default automatically
 
 ## What's deliberately not implemented yet
 

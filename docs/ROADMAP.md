@@ -3,13 +3,18 @@
 > **Status:** Phase 0 (Product & Technical Foundation) is implemented, and
 > Phase 1 (accounts, households, members, invite links + QR, placeholder
 > activation, user profile editing, household switching, member profile
-> editing, household profile settings) is fully implemented. Phase 2 (Home
-> & Family Feed) is in progress — the Home screen layout, Family Notes,
-> Announcements, Today's Schedule, "Needs Your Attention" (permission +
-> meal requests), Today's Meals, and Groceries are real; the rest of the
+> editing, household profile settings, server-persisted default household)
+> is fully implemented. The bottom nav's 5th tab is a "More" settings hub
+> (Appearance, Default household, Profile, Family, Household settings,
+> Account settings placeholder) rather than a dedicated Family tab; Home's
+> own "More" grid links to Trips (placeholder) instead of Profile. Phase 2
+> (Home & Family Feed) is in progress — the Home screen layout, Family
+> Notes, Announcements, Today's Schedule, "Needs Your Attention"
+> (permission + meal requests, each rendered as its own actionable card),
+> Today's Meals, and Groceries are real; the rest of the
 > feed (trips) is an honest empty state until Phase 7 lands. The app's
 > color system was overhauled and a real Light/Dark/System theme mode
-> shipped (toggle in Profile → Appearance) — see `ARCHITECTURE.md` §25
+> shipped (toggle in More → Appearance) — see `ARCHITECTURE.md` §25
 > "Foundation note — Theming". Phase 3 is fully done (event CRUD,
 > Month/Week/Day views, all 4 visibility levels, participants, location,
 > daily/weekly/monthly recurrence). Phase 4 (permission requests) and
@@ -193,7 +198,8 @@ value failed validation) found and fixed during that testing.
 ## Household Profile Settings
 
 An Owner can rename the household and change its accent color/emoji from
-a new Household Settings screen (gear icon on the Family tab). The same
+a new Household Settings screen (reachable from the bottom nav's More tab,
+or via the Family screen pushed from there). The same
 color/emoji palette offered at creation time is reused here; a non-Owner
 can open the screen to see current settings but can't edit them. Color
 and emoji are now persisted server-side (`households.color`/`.emoji`) and
@@ -230,7 +236,8 @@ real API and is reflected back on the Family screen.
 
 Home's layout was redesigned to match a full "family feed" mockup: the
 onboarding-style Welcome/Get-Started card is gone (member invites now
-live on the Family tab), each section has a title + right-aligned action
+live on the Family screen, reachable from the bottom nav's More tab),
+each section has a title + right-aligned action
 link ("See all", "+ Add note", "Request meal", "View list"), and every
 section without a backing feature yet renders its real empty state rather
 than fabricated sample data — consistent with how Household Status and
@@ -421,21 +428,35 @@ for both permission requests and meal requests (Phase 5).
 ## Meal Planning
 
 Owners/Adults set a meal for any day's fixed Breakfast/Lunch/Dinner slot
-(`MealsScreen`'s week strip + three slot cards); everyone can view the
-plan, and non-adults get a "Request this meal" flow instead of a direct
-edit. Weeks aren't grouped behind a parent object client-side either — the
-screen just queries a date range, matching the API's no-`meal_plans`-table
-decision (see `tayo-api`'s `docs/ROADMAP.md` Phase 5 for why).
+(`MealsScreen`'s week strip + three slot cards, week starting Monday);
+everyone else gets a "Request this meal" flow instead of a direct edit —
+anyone, including other adults, can submit a request. Weeks aren't grouped
+behind a parent object client-side either — the screen just queries a date
+range, matching the API's no-`meal_plans`-table decision (see
+`tayo-api`'s `docs/ROADMAP.md` Phase 5 for why).
+
+**Meal approver** — a household can optionally delegate meal-plan
+management to one member (`households.meal_approver_member_id`, set from
+Household Settings). When set, that member fully replaces the Owner/Adult
+check for editing the plan and acting on requests — even the Owner must
+go through the request flow once delegated. Pending requests whose date
+has passed are shown as expired. The Meals screen also has a read-only
+"Week Overview" grid of the whole week's slots.
 
 ## Grocery List
 
-- Shared grocery list — any member (including minors) can add, edit,
-  purchase, or remove any item, deliberately more permissive than meal
-  plans since the stakes are low and full collaboration is the point.
+- Shared grocery list — any member (including minors) can add an item and
+  toggle it purchased/unpurchased; editing or deleting an item, and
+  bulk-clearing purchased items, is Owner/Adult-only. Still deliberately
+  more permissive than meal plans for the add/toggle actions, since the
+  stakes of those are low and full collaboration is the point.
 - Add items with quantity, unit, category
 - Added-by shown per item
-- Purchased status, with purchased items collapsed to the bottom
+- Purchased status, with purchased items collapsed to the bottom and a
+  "Clear" action (Owner/Adult-only) to bulk-remove them
 - Shopping mode is just checking items off — no separate mode toggle
+- Category dropdown + filter chips; swipe-to-reveal Edit/Delete actions
+  (Owner/Adult only)
 
 ## Future Meal → Grocery Integration
 

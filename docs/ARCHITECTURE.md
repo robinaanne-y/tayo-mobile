@@ -1706,7 +1706,7 @@ Docker. The automated test suite always uses in-memory sqlite regardless
 (configured in `phpunit.xml`), so `php artisan test` works with zero setup
 either way.
 
-Run tests: `php artisan test` (163 passing).
+Run tests: `php artisan test` (178 passing).
 
 ## Flutter setup
 
@@ -1780,12 +1780,23 @@ Run tests: `flutter test` (5 passing). Static analysis: `flutter analyze`
 - Default household: server-persisted (`users.default_household_id`),
   settable from More → Default household; the first household a user
   creates becomes their default automatically
+- Tasks & Chores (Phase 6, past the MVP line): one-off and recurring
+  tasks, assignable to a member with a due date. Creating/editing/
+  deleting is Owner/Adult only; marking complete/incomplete is
+  self-service (the assignee, even a minor, or an Owner/Adult) — kept out
+  of the `_AttentionItem`/"Needs Your Attention" system since it's a
+  direct action, not a requester-vs-approver flow. Recurrence reuses
+  Calendar's "Repeats" picker (create-only); recurring chores keep
+  generating server-side via a daily Scheduler job even if nobody opens
+  the app. Reached via a plain `/tasks` route (not a 6th nav tab) from
+  Home's Chores tile, a Home Tasks summary section, and the More hub
 
 ## What's deliberately not implemented yet
 
 - `/api/v1/home` aggregation endpoint (Phase 2)
 - Richer household profile/settings (avatar, timezone, etc. — no mobile
   UI defined yet)
-- Everything past the MVP line: Tasks/Chores, Trips, Family Map,
-  Realtime/Automation, Monetization (Phase 6+)
+- Task push/realtime reminders (Phase 9 territory)
+- Everything past Phase 6: Trips, Family Map, Realtime/Automation,
+  Monetization (Phase 7+)
 - CI pipeline for either project (both are now git repositories)

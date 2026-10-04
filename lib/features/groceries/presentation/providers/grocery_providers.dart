@@ -18,3 +18,12 @@ final currentHouseholdGroceryItemsProvider = FutureProvider<List<GroceryItem>>((
 
   return ref.read(groceryItemRepositoryProvider).list(householdId: household.id);
 });
+
+/// A trip's grocery items -- the current household's list filtered by
+/// trip_id server-side, not a separate concept (see TripDetailScreen).
+final tripGroceryItemsProvider = FutureProvider.family<List<GroceryItem>, int>((ref, tripId) async {
+  final household = ref.watch(currentHouseholdProvider);
+  if (household == null) return const [];
+
+  return ref.read(groceryItemRepositoryProvider).list(householdId: household.id, tripId: tripId);
+});

@@ -6,10 +6,13 @@ class GroceryItemRepository {
 
   final ApiClient _apiClient;
 
-  Future<List<GroceryItem>> list({required int householdId, bool? purchased}) async {
+  Future<List<GroceryItem>> list({required int householdId, bool? purchased, int? tripId}) async {
     final response = await _apiClient.get(
       '/households/$householdId/grocery-items',
-      queryParameters: purchased != null ? {'purchased': purchased ? '1' : '0'} : null,
+      queryParameters: {
+        if (purchased != null) 'purchased': purchased ? '1' : '0',
+        if (tripId != null) 'trip_id': tripId,
+      },
     );
     final data = (response.data as Map<String, dynamic>)['data'] as List;
     return data.map((e) => GroceryItem.fromJson(e as Map<String, dynamic>)).toList();
@@ -21,10 +24,17 @@ class GroceryItemRepository {
     String? quantity,
     String? unit,
     String? category,
+    int? tripId,
   }) async {
     final response = await _apiClient.post(
       '/households/$householdId/grocery-items',
-      data: {'name': name, 'quantity': quantity, 'unit': unit, 'category': category},
+      data: {
+        'name': name,
+        'quantity': quantity,
+        'unit': unit,
+        'category': category,
+        'trip_id': tripId,
+      },
     );
     return GroceryItem.fromJson(
       (response.data as Map<String, dynamic>)['data'] as Map<String, dynamic>,

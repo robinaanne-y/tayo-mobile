@@ -36,6 +36,7 @@ import '../../../requests/domain/permission_request.dart';
 import '../../../requests/presentation/providers/permission_request_providers.dart';
 import '../../../requests/presentation/screens/requests_screen.dart' show RequestDetailSheet;
 import '../../../tasks/presentation/providers/task_providers.dart';
+import '../../../trips/presentation/providers/trip_providers.dart';
 
 /// `_AttentionItem.id`s the viewer has already seen in the bell sheet, this
 /// app session — the bell badge number only counts items *not* in this set,
@@ -324,11 +325,6 @@ class HomeScreen extends ConsumerWidget {
     return (text: 'Good evening!', emoji: '🌙');
   }
 
-  void _notComingYet(BuildContext context) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Coming soon.')));
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final household = ref.watch(currentHouseholdProvider);
@@ -487,16 +483,7 @@ class HomeScreen extends ConsumerWidget {
                   const SizedBox(height: 24),
                   const _TasksSection(),
                   const SizedBox(height: 24),
-                  Text('Upcoming Trip', style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  _EmptyStateCard(
-                    emoji: '✈️',
-                    title: 'No upcoming trips',
-                    message: 'Plan a family trip — camping, beach, or even a '
-                        "staycation — and keep everyone's itinerary in one place.",
-                    buttonLabel: 'Plan a trip',
-                    onPressed: () => _notComingYet(context),
-                  ),
+                  const _TripsSection(),
                   const SizedBox(height: 24),
                   Text('More', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
@@ -1019,6 +1006,69 @@ class _TasksSection extends ConsumerWidget {
           error: (error, stack) => _EmptyStateCard(
             emoji: '✅',
             title: "Couldn't load tasks",
+            message: 'Pull to refresh or try again shortly.',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TripsSection extends ConsumerWidget {
+  const _TripsSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tripAsync = ref.watch(currentHouseholdUpcomingTripProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SectionHeaderRow(
+          title: 'Upcoming Trip',
+          actionLabel: 'View all',
+          onAction: () => context.push('/trips'),
+        ),
+        const SizedBox(height: 8),
+        tripAsync.when(
+          data: (trip) {
+            if (trip == null) {
+              return _EmptyStateCard(
+                emoji: '✈️',
+                title: 'No upcoming trips',
+                message: 'Plan a family trip — camping, beach, or even a '
+                    "staycation — and keep everyone's itinerary in one place.",
+                buttonLabel: 'Plan a trip',
+                onPressed: () => context.push('/trips'),
+              );
+            }
+
+            return AppCard(
+              onTap: () => context.push('/trips'),
+              child: Row(
+                children: [
+                  Icon(LucideIcons.plane, color: context.colors.primary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      trip.daysUntil != null && trip.daysUntil! > 0
+                          ? '${trip.title} in ${trip.daysUntil} day${trip.daysUntil == 1 ? '' : 's'}'
+                          : trip.title,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                  Icon(LucideIcons.chevronRight, size: 18, color: context.colors.textSecondary),
+                ],
+              ),
+            );
+          },
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (error, stack) => _EmptyStateCard(
+            emoji: '✈️',
+            title: "Couldn't load trips",
             message: 'Pull to refresh or try again shortly.',
           ),
         ),
@@ -2046,8 +2096,9 @@ class _HouseholdStatusRow extends ConsumerWidget {
 
 /// Map is Phase 8 work that hasn't started — it opens the shared
 /// ComingSoonScreen rather than faking functionality. Chores/Tasks (Phase
-/// 6) and Permissions are real: Chores opens the Tasks screen, Permissions
-/// opens the Requests screen (Phase 4).
+/// 6), Permissions, and Trips (Phase 7) are real: Chores opens the Tasks
+/// screen, Permissions opens the Requests screen (Phase 4), Trips opens
+/// the Trips screen.
 class _MoreRow extends StatelessWidget {
   const _MoreRow();
 
@@ -2095,15 +2146,7 @@ class _MoreRow extends StatelessWidget {
             icon: LucideIcons.plane,
             color: AppColors.lavender,
             label: 'Trips',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const ComingSoonScreen(
-                  title: 'Trips',
-                  icon: LucideIcons.plane,
-                  message: 'Planning and tracking family trips is on its way.',
-                ),
-              ),
-            ),
+            onTap: () => context.push('/trips'),
           ),
         ),
       ],

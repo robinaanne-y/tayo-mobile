@@ -7,12 +7,12 @@
 > is fully implemented. The bottom nav's 5th tab is a "More" settings hub
 > (Appearance, Default household, Profile, Family, Household settings,
 > Account settings placeholder) rather than a dedicated Family tab; Home's
-> own "More" grid links to Trips (placeholder) instead of Profile. Phase 2
+> own "More" grid links to Trips instead of Profile. Phase 2
 > (Home & Family Feed) is in progress — the Home screen layout, Family
 > Notes, Announcements, Today's Schedule, "Needs Your Attention"
 > (permission + meal requests, each rendered as its own actionable card),
-> Today's Meals, and Groceries are real; the rest of the
-> feed (trips) is an honest empty state until Phase 7 lands. The app's
+> Today's Meals, Groceries, and the Upcoming Trip section are all real.
+> The app's
 > color system was overhauled and a real Light/Dark/System theme mode
 > shipped (toggle in More → Appearance) — see `ARCHITECTURE.md` §25
 > "Foundation note — Theming". Phase 3 is fully done (event CRUD,
@@ -20,8 +20,10 @@
 > daily/weekly/monthly recurrence). Phase 4 (permission requests) and
 > Phase 5 (meal planning, meal requests, shared grocery list) are both
 > done — **this is the mobile MVP line**. Phase 6 (one-off and recurring
-> tasks/chores, assignable with due dates, self-service completion) is
-> also done, past the MVP line. See `ARCHITECTURE.md` →
+> tasks/chores, assignable with due dates, self-service completion) and
+> Phase 7 (trip planning, itinerary, checklist/grocery integration,
+> calendar sync, a Past Trips gallery with memories) are also done, past
+> the MVP line. See `ARCHITECTURE.md` →
 > "Foundation Implementation Notes" for exactly what exists today and how
 > to run it.
 
@@ -575,29 +577,40 @@ Met for one-off and recurring tasks; push reminders are Phase 9.
 
 ---
 
-# Phase 7 — Trips & Family Events
+# Phase 7 — Trips & Family Events ✅ Done
 
 The trip planner is intentionally limited to household coordination rather than becoming a full travel platform.
 
 ## Features
 
-- Family event/trip
-- Trip details
-- Dates
-- Location
-- Participants
-- Itinerary
-- Itinerary details
-- Preparation checklist
-- Checklist assignments
-- Checklist completion
-- Countdown
-- Trip tasks
-- Trip grocery integration
-- Calendar integration
-- Home integration
-- Trip notes
-- Trip status
+- [x] Family event/trip
+- [x] Trip details
+- [x] Dates
+- [x] Location (destination)
+- [x] Participants
+- [x] Itinerary (timed items)
+- [x] Itinerary details
+- [x] Preparation checklist / Trip tasks — the same thing: a checklist
+      item is just a Phase 6 Task scoped to the trip (`trip_id`), not a
+      separate model, so checklist and trip-task capabilities share one
+      implementation
+- [x] Checklist assignments — inherited from Task's `assigned_member_id`
+- [x] Checklist completion — inherited from Task's self-service
+      complete/uncomplete (the assignee or an Owner/Adult)
+- [x] Countdown (computed `days_until`, never stored)
+- [x] Trip grocery integration — a grocery item scoped to the trip via
+      `trip_id`, same filtered-view approach as the checklist
+- [x] Calendar integration — the trip's dates and itinerary appear as
+      read-only entries in the shared Calendar (tapping one opens Trip
+      detail, not the event editor), synthesized by the API at read time
+      with zero duplicate `events` rows created
+- [x] Home integration — an "Upcoming Trip" section with countdown
+- [x] Trip notes (free text)
+- [x] Trip status (planning/confirmed/completed/cancelled)
+- [x] Trip thumbnail (Owner/Adult upload) and a Past Trips gallery —
+      grid of past trips by thumbnail/title/year
+- [x] Trip memories — one "memorable moment" note per member per trip,
+      any member can add their own, author or Owner/Adult can delete
 
 ## Example
 
@@ -623,7 +636,7 @@ CHECKLIST
 
 ### Milestone
 
-A family can plan, prepare for and coordinate a major family activity from one place.
+A family can plan, prepare for and coordinate a major family activity from one place. Met, plus a Past Trips gallery with thumbnails and per-member memories once the trip is over.
 
 ---
 
@@ -763,7 +776,7 @@ The application has a sustainable monetization model based on household value ra
 | 4 | Family Requests | Critical | Core |
 | 5 | Meals + Groceries | Critical | **MVP** ✅ |
 | 6 | Tasks + Chores | High | V1.1 ✅ |
-| 7 | Trips + Events | High | V1.2 |
+| 7 | Trips + Events | High | V1.2 ✅ |
 | 8 | Family Map + Location | Medium | V1.3 |
 | 9 | Realtime + Automation | Medium | V1.4 |
 | 10 | Monetization | Later | After validation |

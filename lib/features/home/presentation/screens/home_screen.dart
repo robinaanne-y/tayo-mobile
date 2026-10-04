@@ -32,11 +32,14 @@ import '../../../meals/presentation/providers/meal_providers.dart';
 import '../../../meals/presentation/screens/meals_screen.dart' show MealRequestDetailSheet;
 import '../../../members/domain/member.dart';
 import '../../../members/presentation/providers/member_providers.dart';
+import '../../../reminders/domain/reminder.dart';
+import '../../../reminders/presentation/providers/reminder_providers.dart';
 import '../../../requests/domain/permission_request.dart';
 import '../../../requests/presentation/providers/permission_request_providers.dart';
 import '../../../requests/presentation/screens/requests_screen.dart' show RequestDetailSheet;
 import '../../../tasks/presentation/providers/task_providers.dart';
 import '../../../trips/presentation/providers/trip_providers.dart';
+import '../../../trips/presentation/screens/trip_detail_screen.dart';
 
 /// `_AttentionItem.id`s the viewer has already seen in the bell sheet, this
 /// app session — the bell badge number only counts items *not* in this set,
@@ -467,6 +470,7 @@ class HomeScreen extends ConsumerWidget {
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
+                  const _RemindersSection(),
                   const _TodaysScheduleSection(),
                   const SizedBox(height: 24),
                   Text('Needs Your Attention', style: Theme.of(context).textTheme.titleMedium),
@@ -590,6 +594,83 @@ class _EmptyStateCard extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Time-sensitive nudges computed server-side from existing data (no new
+/// "reminder" rows are ever stored) — see ReminderComputer on the API
+/// side. Unlike every other Home section, there is no empty-state card:
+/// having no reminders is the normal, expected state, so this collapses
+/// to nothing rather than showing an empty header.
+class _RemindersSection extends ConsumerWidget {
+  const _RemindersSection();
+
+  void _open(BuildContext context, Reminder reminder) {
+    switch (reminder.category) {
+      case 'meal_planning':
+        context.go('/meals');
+      case 'grocery':
+        context.go('/groceries');
+      case 'trip_prep':
+        if (reminder.tripId != null) {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => TripDetailScreen(tripId: reminder.tripId!)),
+          );
+        } else {
+          context.push('/trips');
+        }
+    }
+  }
+
+  IconData _iconFor(String category) => switch (category) {
+        'meal_planning' => LucideIcons.utensils,
+        'grocery' => LucideIcons.shoppingBag,
+        'trip_prep' => LucideIcons.plane,
+        _ => LucideIcons.bell,
+      };
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final remindersAsync = ref.watch(currentHouseholdRemindersProvider);
+
+    return remindersAsync.when(
+      data: (reminders) {
+        if (reminders.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final reminder in reminders) ...[
+              AppCard(
+                onTap: () => _open(context, reminder),
+                child: Row(
+                  children: [
+                    Icon(_iconFor(reminder.category), color: context.colors.primary),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(reminder.title, style: Theme.of(context).textTheme.bodyMedium),
+                          Text(reminder.message, style: Theme.of(context).textTheme.labelMedium),
+                        ],
+                      ),
+                    ),
+                    Icon(LucideIcons.chevronRight, size: 18, color: context.colors.textSecondary),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+            const SizedBox(height: 16),
+          ],
+        );
+      },
+      // Silent on loading/error -- these are low-stakes nudges, not worth
+      // a spinner or error card competing for attention at the top of Home.
+      loading: () => const SizedBox.shrink(),
+      error: (error, stack) => const SizedBox.shrink(),
     );
   }
 }

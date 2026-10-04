@@ -35,6 +35,7 @@ import '../../../members/presentation/providers/member_providers.dart';
 import '../../../requests/domain/permission_request.dart';
 import '../../../requests/presentation/providers/permission_request_providers.dart';
 import '../../../requests/presentation/screens/requests_screen.dart' show RequestDetailSheet;
+import '../../../tasks/presentation/providers/task_providers.dart';
 
 /// `_AttentionItem.id`s the viewer has already seen in the bell sheet, this
 /// app session — the bell badge number only counts items *not* in this set,
@@ -483,6 +484,8 @@ class HomeScreen extends ConsumerWidget {
                   const _TodaysMealsSection(),
                   const SizedBox(height: 24),
                   const _GroceriesSection(),
+                  const SizedBox(height: 24),
+                  const _TasksSection(),
                   const SizedBox(height: 24),
                   Text('Upcoming Trip', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
@@ -948,6 +951,78 @@ class _GroceryTag extends StatelessWidget {
             .labelSmall
             ?.copyWith(color: context.colors.primary, fontWeight: FontWeight.w600),
       ),
+    );
+  }
+}
+
+/// Tasks due today or overdue, not yet completed — self-service completion
+/// (like Groceries' purchase toggle), so this deliberately does NOT go
+/// through the _AttentionItem/"Needs Your Attention" system, which exists
+/// specifically for requester-vs-approver flows.
+class _TasksSection extends ConsumerWidget {
+  const _TasksSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tasksAsync = ref.watch(currentHouseholdTodaysTasksProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SectionHeaderRow(
+          title: 'Tasks',
+          actionLabel: 'View all',
+          onAction: () => context.push('/tasks'),
+        ),
+        const SizedBox(height: 8),
+        tasksAsync.when(
+          data: (tasks) {
+            if (tasks.isEmpty) {
+              return _EmptyStateCard(
+                emoji: '✅',
+                title: 'No tasks today',
+                message: 'Assign chores and one-off tasks so everyone '
+                    'knows what needs doing.',
+                buttonLabel: 'Add a task',
+                onPressed: () => context.push('/tasks'),
+              );
+            }
+
+            final overdueCount = tasks.where((t) => t.isOverdue).length;
+
+            return AppCard(
+              onTap: () => context.push('/tasks'),
+              child: Row(
+                children: [
+                  Icon(
+                    LucideIcons.checkCircle,
+                    color: overdueCount > 0 ? context.colors.error : context.colors.primary,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      overdueCount > 0
+                          ? '$overdueCount overdue, ${tasks.length} total left today'
+                          : '${tasks.length} task${tasks.length == 1 ? '' : 's'} left today',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                  Icon(LucideIcons.chevronRight, size: 18, color: context.colors.textSecondary),
+                ],
+              ),
+            );
+          },
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (error, stack) => _EmptyStateCard(
+            emoji: '✅',
+            title: "Couldn't load tasks",
+            message: 'Pull to refresh or try again shortly.',
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1969,11 +2044,10 @@ class _HouseholdStatusRow extends ConsumerWidget {
   }
 }
 
-/// Chores and Map are Phase 6/8 work that hasn't started — each opens the
-/// shared ComingSoonScreen rather than faking functionality. Permissions
-/// and Profile are real: Permissions opens the Requests screen (Phase 4),
-/// Profile opens the profile edit screen directly, since there's no
-/// dedicated settings/profile tab yet to house it.
+/// Map is Phase 8 work that hasn't started — it opens the shared
+/// ComingSoonScreen rather than faking functionality. Chores/Tasks (Phase
+/// 6) and Permissions are real: Chores opens the Tasks screen, Permissions
+/// opens the Requests screen (Phase 4).
 class _MoreRow extends StatelessWidget {
   const _MoreRow();
 
@@ -1986,15 +2060,7 @@ class _MoreRow extends StatelessWidget {
             icon: LucideIcons.checkCircle,
             color: context.colors.primary,
             label: 'Chores',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const ComingSoonScreen(
-                  title: 'Chores',
-                  icon: LucideIcons.checkCircle,
-                  message: 'Assigning and tracking chores is on its way.',
-                ),
-              ),
-            ),
+            onTap: () => context.push('/tasks'),
           ),
         ),
         const SizedBox(width: 10),

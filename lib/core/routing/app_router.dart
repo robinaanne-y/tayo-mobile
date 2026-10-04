@@ -17,6 +17,7 @@ import '../../features/members/presentation/screens/family_screen.dart';
 import '../../features/members/presentation/screens/invite_member_screen.dart';
 import '../../features/requests/presentation/screens/requests_screen.dart';
 import '../../features/settings/presentation/screens/more_screen.dart';
+import '../../features/tasks/presentation/screens/tasks_screen.dart';
 import 'app_shell.dart';
 import 'deep_link_listener.dart';
 
@@ -112,6 +113,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/family',
         builder: (context, state) => const FamilyScreen(),
+      ),
+      // Reached from Home's "Chores" tile and the Tasks section — same
+      // tier as /requests/family, since the bottom nav is already full.
+      GoRoute(
+        path: '/tasks',
+        builder: (context, state) => const TasksScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>

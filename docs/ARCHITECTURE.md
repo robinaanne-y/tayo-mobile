@@ -1706,7 +1706,7 @@ Docker. The automated test suite always uses in-memory sqlite regardless
 (configured in `phpunit.xml`), so `php artisan test` works with zero setup
 either way.
 
-Run tests: `php artisan test` (178 passing).
+Run tests: `php artisan test` (200 passing).
 
 ## Flutter setup
 
@@ -1790,6 +1790,21 @@ Run tests: `flutter test` (5 passing). Static analysis: `flutter analyze`
   generating server-side via a daily Scheduler job even if nobody opens
   the app. Reached via a plain `/tasks` route (not a 6th nav tab) from
   Home's Chores tile, a Home Tasks summary section, and the More hub
+- Trips & Family Events (Phase 7, past the MVP line): a trip (dates,
+  destination, notes, status, participants) with a timed itinerary.
+  Checklist and "trip tasks" are the same thing — a Task scoped via a
+  nullable `trip_id` rather than a separate model — and grocery
+  integration is the identical move on `grocery_items`, so both reuse
+  the Tasks/Groceries screens' row widgets and data layer rather than
+  duplicating them. A trip's dates/itinerary appear as read-only entries
+  in the shared Calendar: the API synthesizes them at read time (no
+  `events` rows ever created), and tapping one opens Trip detail instead
+  of the event editor (`Event.isTripDerived`). A trip can have an
+  Owner/Adult-uploaded thumbnail and a Past Trips grid gallery
+  (thumbnail/title/year); each member can leave one "memorable moment"
+  note per trip, author-or-Owner/Adult can delete. Reached via a plain
+  `/trips` route from Home's Trips tile, the Upcoming Trip section, and
+  the More hub
 
 ## What's deliberately not implemented yet
 
@@ -1797,6 +1812,6 @@ Run tests: `flutter test` (5 passing). Static analysis: `flutter analyze`
 - Richer household profile/settings (avatar, timezone, etc. — no mobile
   UI defined yet)
 - Task push/realtime reminders (Phase 9 territory)
-- Everything past Phase 6: Trips, Family Map, Realtime/Automation,
-  Monetization (Phase 7+)
+- Everything past Phase 7: Family Map, Realtime/Automation, Monetization
+  (Phase 8+)
 - CI pipeline for either project (both are now git repositories)

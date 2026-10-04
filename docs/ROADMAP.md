@@ -19,7 +19,9 @@
 > Month/Week/Day views, all 4 visibility levels, participants, location,
 > daily/weekly/monthly recurrence). Phase 4 (permission requests) and
 > Phase 5 (meal planning, meal requests, shared grocery list) are both
-> done — **this is the mobile MVP line**. See `ARCHITECTURE.md` →
+> done — **this is the mobile MVP line**. Phase 6 (one-off and recurring
+> tasks/chores, assignable with due dates, self-service completion) is
+> also done, past the MVP line. See `ARCHITECTURE.md` →
 > "Foundation Implementation Notes" for exactly what exists today and how
 > to run it.
 
@@ -516,7 +518,7 @@ The MVP should be polished enough for real families to use rather than trying to
 
 ---
 
-# Phase 6 — Tasks & Chores
+# Phase 6 — Tasks & Chores ✅ Done
 
 ## Features
 
@@ -542,19 +544,34 @@ Examples:
 
 ### Capabilities
 
-- Create task
-- Assign member
-- Due date
-- Recurrence
-- Completion
-- Notifications
-- Task status
+- [x] Create task
+- [x] Assign member
+- [x] Due date
+- [x] Recurrence (daily/weekly/monthly, same "Repeats" picker as Calendar
+      events, create-only — no editing an existing pattern)
+- [x] Completion — self-service: the assignee (even a minor) or an
+      Owner/Adult can mark a task complete/incomplete; creating/editing/
+      deleting a task is Owner/Adult only
+- [ ] Notifications — deferred to Phase 9 (push/realtime infra); Home's
+      Tasks section and the list screen's overdue styling are the only
+      "reminder" today
+- [x] Task status (pending/overdue/completed, filterable)
+
+Reached via a plain `/tasks` route — not a 6th bottom-nav tab, since the
+nav bar is already full at 5/5 — from Home's "Chores" tile, a new Home
+Tasks summary section, and a More-hub list entry. Task completion is
+deliberately kept out of the `_AttentionItem`/"Needs Your Attention"
+system (that's for requester-vs-approver flows like permission/meal
+requests); it's a direct self-service action, same as toggling a grocery
+item purchased.
 
 ### Milestone
 
 The app answers:
 
 > **"What needs to get done?"**
+
+Met for one-off and recurring tasks; push reminders are Phase 9.
 
 ---
 
@@ -745,7 +762,7 @@ The application has a sustainable monetization model based on household value ra
 | 3 | Calendar + Scheduling | Critical | Core |
 | 4 | Family Requests | Critical | Core |
 | 5 | Meals + Groceries | Critical | **MVP** ✅ |
-| 6 | Tasks + Chores | High | V1.1 |
+| 6 | Tasks + Chores | High | V1.1 ✅ |
 | 7 | Trips + Events | High | V1.2 |
 | 8 | Family Map + Location | Medium | V1.3 |
 | 9 | Realtime + Automation | Medium | V1.4 |

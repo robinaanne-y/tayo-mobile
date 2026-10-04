@@ -32,3 +32,12 @@ final currentHouseholdTodaysTasksProvider = FutureProvider<List<TaskItem>>((ref)
     return !dueDate.isAfter(todayDate);
   }).toList();
 });
+
+/// A trip's checklist/tasks -- just the current household's tasks filtered
+/// by trip_id server-side, not a separate concept (see TripDetailScreen).
+final tripTasksProvider = FutureProvider.family<List<TaskItem>, int>((ref, tripId) async {
+  final household = ref.watch(currentHouseholdProvider);
+  if (household == null) return const [];
+
+  return ref.read(taskRepositoryProvider).list(householdId: household.id, tripId: tripId);
+});

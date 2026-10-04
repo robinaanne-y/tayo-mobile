@@ -68,9 +68,11 @@ class Event {
     required this.sharedHouseholds,
     required this.isRecurring,
     this.recurrenceSummary,
+    this.type,
+    this.tripId,
   });
 
-  final int id;
+  final String id;
   final int householdId;
   final int creatorMemberId;
   final String creatorName;
@@ -84,10 +86,17 @@ class Event {
   final List<Household> sharedHouseholds;
   final bool isRecurring;
   final String? recurrenceSummary;
+  final String? type;
+  final int? tripId;
+
+  /// A synthesized, read-only calendar entry projected from a Trip/trip
+  /// itinerary item -- see TripCalendarEntryResource on the API side.
+  /// Tapping one opens the Trip detail screen, never the event editor.
+  bool get isTripDerived => type != null;
 
   factory Event.fromJson(Map<String, dynamic> json) {
     return Event(
-      id: json['id'] as int,
+      id: json['id'].toString(),
       householdId: json['household_id'] as int,
       creatorMemberId: json['creator_member_id'] as int,
       creatorName: json['creator_name'] as String? ?? '',
@@ -105,6 +114,8 @@ class Event {
           .toList(),
       isRecurring: json['is_recurring'] as bool? ?? false,
       recurrenceSummary: json['recurrence_summary'] as String?,
+      type: json['type'] as String?,
+      tripId: json['trip_id'] as int?,
     );
   }
 }

@@ -18,6 +18,7 @@ import '../../features/members/presentation/screens/invite_member_screen.dart';
 import '../../features/requests/presentation/screens/requests_screen.dart';
 import '../../features/settings/presentation/screens/more_screen.dart';
 import '../../features/tasks/presentation/screens/tasks_screen.dart';
+import '../../features/trips/presentation/screens/trips_screen.dart';
 import 'app_shell.dart';
 import 'deep_link_listener.dart';
 
@@ -119,6 +120,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/tasks',
         builder: (context, state) => const TasksScreen(),
+      ),
+      // Reached from Home's "Trips" tile and the Upcoming Trip section —
+      // same tier as /tasks, since the bottom nav is already full.
+      GoRoute(
+        path: '/trips',
+        builder: (context, state) => const TripsScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>

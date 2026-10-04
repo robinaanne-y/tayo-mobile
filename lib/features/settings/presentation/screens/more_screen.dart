@@ -106,6 +106,12 @@ class MoreScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             _MoreListTile(
+              icon: LucideIcons.plane,
+              label: 'Trips',
+              onTap: () => context.push('/trips'),
+            ),
+            const SizedBox(height: 8),
+            _MoreListTile(
               icon: LucideIcons.settings,
               label: 'Household settings',
               onTap: household == null

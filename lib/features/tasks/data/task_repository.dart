@@ -13,6 +13,7 @@ class TaskRepository {
     String? status,
     DateTime? dueBefore,
     DateTime? dueAfter,
+    int? tripId,
   }) async {
     final response = await _apiClient.get(
       '/households/$householdId/tasks',
@@ -21,6 +22,7 @@ class TaskRepository {
         if (status != null) 'status': status,
         if (dueBefore != null) 'due_before': _dateOnly(dueBefore),
         if (dueAfter != null) 'due_after': _dateOnly(dueAfter),
+        if (tripId != null) 'trip_id': tripId,
       },
     );
     final data = (response.data as Map<String, dynamic>)['data'] as List;
@@ -33,6 +35,7 @@ class TaskRepository {
     String? description,
     required DateTime dueAt,
     int? assignedMemberId,
+    int? tripId,
     RecurrenceFrequency? recurrenceFrequency,
     int recurrenceInterval = 1,
     List<int>? recurrenceByDay,
@@ -46,6 +49,7 @@ class TaskRepository {
         'description': description,
         'due_at': _dateOnly(dueAt),
         'assigned_member_id': assignedMemberId,
+        'trip_id': tripId,
         if (recurrenceFrequency != null)
           'recurrence': {
             'frequency': recurrenceFrequency.value,

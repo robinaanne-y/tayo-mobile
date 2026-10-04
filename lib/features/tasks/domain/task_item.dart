@@ -5,6 +5,7 @@ class TaskItem {
     required this.title,
     required this.description,
     required this.dueAt,
+    this.tripId,
     required this.assignedMemberId,
     required this.assigneeName,
     required this.createdByMemberId,
@@ -20,6 +21,7 @@ class TaskItem {
   final String title;
   final String? description;
   final DateTime? dueAt;
+  final int? tripId;
   final int? assignedMemberId;
   final String? assigneeName;
   final int createdByMemberId;
@@ -46,6 +48,7 @@ class TaskItem {
       title: json['title'] as String,
       description: json['description'] as String?,
       dueAt: json['due_at'] != null ? DateTime.parse(json['due_at'] as String) : null,
+      tripId: json['trip_id'] as int?,
       assignedMemberId: json['assigned_member_id'] as int?,
       assigneeName: json['assignee_name'] as String?,
       createdByMemberId: json['created_by_member_id'] as int,

@@ -20,6 +20,7 @@ import '../../../households/presentation/household_visuals.dart';
 import '../../../households/presentation/providers/household_providers.dart';
 import '../../../members/domain/member.dart';
 import '../../../members/presentation/providers/member_providers.dart';
+import '../../../trips/presentation/screens/trip_detail_screen.dart';
 import '../../domain/event.dart';
 import '../providers/event_providers.dart';
 
@@ -285,7 +286,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                     event: event,
                                     colorForMember: colorForMember,
                                     householdMemberCount: members.length,
-                                    onTap: () => _openAddEditSheet(existing: event),
+                                    onTap: event.isTripDerived
+                                        ? () => Navigator.of(context).push(
+                                              MaterialPageRoute(
+                                                builder: (_) => TripDetailScreen(tripId: event.tripId!),
+                                              ),
+                                            )
+                                        : () => _openAddEditSheet(existing: event),
                                   );
                                 },
                               ),
@@ -602,14 +609,25 @@ class _EventListTile extends StatelessWidget {
           border: Border.all(color: context.colors.border),
         ),
         child: AppListRow(
-          leading: Container(
-            width: 4,
-            height: 40,
-            decoration: BoxDecoration(
-              color: ownerColor,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
+          leading: event.isTripDerived
+              ? Container(
+                  width: 32,
+                  height: 32,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: AppColors.lavender.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(LucideIcons.plane, size: 16, color: AppColors.lavender),
+                )
+              : Container(
+                  width: 4,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: ownerColor,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
           title: event.title,
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -618,7 +636,8 @@ class _EventListTile extends StatelessWidget {
               Text(
                 '${DateFormat.jm().format(event.startAt)} · '
                 '${_participantsLabel(event, householdMemberCount)}'
-                '${event.visibility == EventVisibility.private ? ' · Private' : ''}',
+                '${event.visibility == EventVisibility.private ? ' · Private' : ''}'
+                '${event.isTripDerived ? ' · Trip' : ''}',
                 style: Theme.of(context).textTheme.labelMedium,
               ),
               if (event.location != null && event.location!.isNotEmpty) ...[
@@ -861,7 +880,7 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
       if (existing != null) {
         await repository.update(
           householdId: widget.householdId,
-          eventId: existing.id,
+          eventId: int.parse(existing.id),
           title: title,
           description: description.isEmpty ? null : description,
           location: location.isEmpty ? null : location,
@@ -921,7 +940,7 @@ class _AddEditEventSheetState extends ConsumerState<_AddEditEventSheet> {
     try {
       await ref.read(eventRepositoryProvider).delete(
             householdId: widget.householdId,
-            eventId: existing.id,
+            eventId: int.parse(existing.id),
             scope: deleteScope,
           );
       if (mounted) Navigator.of(context).pop(true);

@@ -23,6 +23,7 @@ class GroceryItem {
     required this.quantity,
     required this.unit,
     required this.category,
+    this.tripId,
     required this.addedByName,
     required this.purchasedAt,
     required this.purchasedByName,
@@ -34,6 +35,7 @@ class GroceryItem {
   final String? quantity;
   final String? unit;
   final String? category;
+  final int? tripId;
   final String? addedByName;
   final DateTime? purchasedAt;
   final String? purchasedByName;
@@ -48,6 +50,7 @@ class GroceryItem {
       quantity: json['quantity'] as String?,
       unit: json['unit'] as String?,
       category: json['category'] as String?,
+      tripId: json['trip_id'] as int?,
       addedByName: json['added_by_name'] as String?,
       purchasedAt: json['purchased_at'] != null
           ? DateTime.parse(json['purchased_at'] as String).toLocal()

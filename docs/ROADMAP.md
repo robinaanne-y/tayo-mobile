@@ -23,7 +23,12 @@
 > tasks/chores, assignable with due dates, self-service completion) and
 > Phase 7 (trip planning, itinerary, checklist/grocery integration,
 > calendar sync, a Past Trips gallery with memories) are also done, past
-> the MVP line. See `ARCHITECTURE.md` →
+> the MVP line. Phase 9's automation slice is also done — in-app
+> reminders (meal planning, grocery, trip prep) computed server-side,
+> with per-category notification preferences — though Phase 9's
+> Realtime/push pieces (and all of Phase 8, Family Map & Location) stay
+> deferred pending external service setup (Maps/Firebase API keys) not
+> available right now. See `ARCHITECTURE.md` →
 > "Foundation Implementation Notes" for exactly what exists today and how
 > to run it.
 
@@ -674,9 +679,16 @@ without making location sharing mandatory.
 
 ---
 
-# Phase 9 — Realtime, Notifications & Automation
+# Phase 9 — Realtime, Notifications & Automation — partially done
 
-## Realtime
+Scoped down to just the automation/reminders piece — Realtime (Reverb)
+and push Notifications (FCM) both need external service/account setup
+that wasn't feasible to do in one sitting, so they stay deferred below.
+Everything in this phase today is **in-app only**: a reminder is
+computed server-side and shown the next time the relevant screen is
+open, not pushed while the app is closed.
+
+## Realtime — deferred, not started
 
 Introduce Laravel Reverb/WebSockets where live updates materially improve the experience.
 
@@ -689,31 +701,37 @@ Candidates:
 - Trip checklist updates
 - Household announcements
 
-## Notifications
+## Notifications — deferred, not started
 
-- Permission requests
-- Calendar reminders
-- Meal requests
-- Grocery updates
-- Task reminders
-- Trip reminders
-- Location alerts
+True push (FCM) for: permission requests, calendar reminders, meal
+requests, grocery updates, task reminders, trip reminders, location
+alerts. Needs a Firebase project + APNs certs before any of this can
+start.
 
-## Automation
+## Automation ✅ Done (in-app, not push)
 
-Examples:
+- [x] Weekly meal planning reminder
+- [x] Recurring grocery reminder
+- [x] Trip preparation reminders
+- [ ] Event reminders — dropped from this cut; a timed "remind me
+      before X" reminder needs push or local notifications to mean
+      anything, which a read-time computation can't provide
+- [x] Recurring chore generation — already fully built in Phase 6
+      (`tasks:generate-occurrences`), nothing further needed here
 
-- Weekly meal planning reminder
-- Recurring grocery reminder
-- Trip preparation reminders
-- Event reminders
-- Recurring chore generation
-
-Use Laravel Scheduler, queues and jobs rather than implementing business automation inside Flutter.
+Reminders are computed server-side at read time (no stored "reminders"
+table — `ReminderComputer` on the API side), gated by a per-member,
+per-category `NotificationPreference` toggle (reachable from More →
+Notifications). Surfaced via a new Home section above Today's
+Schedule — unlike every other Home section it shows nothing at all when
+there's nothing to remind about, rather than an empty-state card.
 
 ### Milestone
 
-The application proactively helps families rather than simply storing information.
+The application proactively helps families rather than simply storing
+information. **Not fully met** — the backend computes what the family
+needs to know, but still only answers when the app asks (on open), not
+a true push. Revisit once Reverb/FCM are set up.
 
 ---
 
@@ -778,7 +796,7 @@ The application has a sustainable monetization model based on household value ra
 | 6 | Tasks + Chores | High | V1.1 ✅ |
 | 7 | Trips + Events | High | V1.2 ✅ |
 | 8 | Family Map + Location | Medium | V1.3 |
-| 9 | Realtime + Automation | Medium | V1.4 |
+| 9 | Realtime + Automation | Medium | V1.4 — automation done, realtime/push deferred |
 | 10 | Monetization | Later | After validation |
 
 ---

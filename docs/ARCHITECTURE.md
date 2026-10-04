@@ -1706,7 +1706,7 @@ Docker. The automated test suite always uses in-memory sqlite regardless
 (configured in `phpunit.xml`), so `php artisan test` works with zero setup
 either way.
 
-Run tests: `php artisan test` (200 passing).
+Run tests: `php artisan test` (212 passing).
 
 ## Flutter setup
 
@@ -1805,13 +1805,34 @@ Run tests: `flutter test` (5 passing). Static analysis: `flutter analyze`
   note per trip, author-or-Owner/Adult can delete. Reached via a plain
   `/trips` route from Home's Trips tile, the Upcoming Trip section, and
   the More hub
+- Automation & Reminders (Phase 9's automation slice only, past the MVP
+  line): three categories — `meal_planning`, `grocery`, `trip_prep` —
+  computed server-side live from existing data on every read (no
+  `reminders` table; `ReminderComputer` on the API side), gated by a
+  per-member `NotificationPreference` toggle (opt-out, default
+  enabled). Surfaced as a new Home section above Today's Schedule that
+  renders nothing when empty, unlike every other Home section's
+  empty-state card. In-app only — Phase 9's Realtime (Reverb) and push
+  (FCM) pieces are deferred (see below), so nothing is pushed while the
+  app is closed
 
 ## What's deliberately not implemented yet
 
 - `/api/v1/home` aggregation endpoint (Phase 2)
 - Richer household profile/settings (avatar, timezone, etc. — no mobile
   UI defined yet)
-- Task push/realtime reminders (Phase 9 territory)
-- Everything past Phase 7: Family Map, Realtime/Automation, Monetization
-  (Phase 8+)
+- Phase 8 (Family Map & Location) — deferred entirely. An ADR
+  (`tayo-api`'s `docs/DECISIONS.md` ADR-008) already resolves the
+  consent/storage/visibility design, but implementation is blocked on
+  external setup (a Maps SDK/API key, if a literal map view is wanted)
+  and this being the first feature needing a location-permission
+  package at all
+- Phase 9's Realtime (Reverb) and push Notifications (FCM) — deferred,
+  both need external service/account setup (a running WebSocket server;
+  a Firebase project + APNs certs) not available right now. The
+  automation/reminders slice is done without them (see above)
+- Event reminders specifically — dropped from the Phase 9 automation
+  cut, since a timed "remind me before X" reminder needs push or local
+  notifications to mean anything
+- Everything past Phase 9: Monetization (Phase 10+)
 - CI pipeline for either project (both are now git repositories)

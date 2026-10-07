@@ -167,7 +167,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         child: Column(
           children: [
             _CalendarHeader(
-              title: DateFormat('MMM yyyy').format(_selectedDay),
+              // _focusedDay, not _selectedDay -- swiping the month view only
+              // moves _focusedDay (onPageChanged below), so a header bound to
+              // _selectedDay would lag behind until a date is actually
+              // tapped. _focusedDay already tracks _selectedDay everywhere
+              // else, since _selectDay() always sets both together.
+              title: DateFormat('MMM yyyy').format(_focusedDay),
               viewMode: _viewMode,
               onViewModeChanged: (mode) => setState(() => _viewMode = mode),
               members: members,

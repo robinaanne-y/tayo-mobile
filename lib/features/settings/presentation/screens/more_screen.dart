@@ -12,6 +12,7 @@ import '../../../auth/presentation/providers/auth_controller.dart';
 import '../../../auth/presentation/screens/profile_screen.dart';
 import '../../../households/presentation/providers/household_providers.dart';
 import '../../../households/presentation/screens/household_settings_screen.dart';
+import '../../../reminders/presentation/screens/notification_preferences_screen.dart';
 
 /// The 5th bottom-nav tab, at `/more` — a settings hub, distinct from
 /// Home's own "More" grid section (Chores/Map/Permissions/Trips). Mostly a
@@ -109,6 +110,14 @@ class MoreScreen extends ConsumerWidget {
               icon: LucideIcons.plane,
               label: 'Trips',
               onTap: () => context.push('/trips'),
+            ),
+            const SizedBox(height: 8),
+            _MoreListTile(
+              icon: LucideIcons.bell,
+              label: 'Notifications',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const NotificationPreferencesScreen()),
+              ),
             ),
             const SizedBox(height: 8),
             _MoreListTile(

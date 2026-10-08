@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../core/config/env.dart';
 import '../../../../core/networking/api_exception.dart';
 import '../../../../core/theme/app_color_tokens.dart';
 import '../../domain/trip.dart';
@@ -80,7 +81,10 @@ class _PastTripTile extends StatelessWidget {
                 color: context.colors.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(16),
                 image: trip.thumbnailUrl != null
-                    ? DecorationImage(image: NetworkImage(trip.thumbnailUrl!), fit: BoxFit.cover)
+                    ? DecorationImage(
+                        image: NetworkImage('${Env.mediaBaseUrl}${trip.thumbnailUrl}'),
+                        fit: BoxFit.cover,
+                      )
                     : null,
               ),
               child: trip.thumbnailUrl == null

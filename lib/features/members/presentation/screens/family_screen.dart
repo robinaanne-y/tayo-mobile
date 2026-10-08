@@ -400,10 +400,12 @@ class _MemberDetail extends ConsumerWidget {
     if (picked == null) return;
 
     try {
+      final bytes = await picked.readAsBytes();
       final updated = await ref.read(memberRepositoryProvider).uploadAvatar(
             householdId: id,
             memberId: member.id,
-            filePath: picked.path,
+            bytes: bytes,
+            filename: picked.name,
           );
       onUpdated(updated);
     } on ApiException catch (e) {

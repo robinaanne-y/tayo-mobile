@@ -55,6 +55,12 @@ class MemberAvatar extends StatelessWidget {
               width: size,
               height: size,
               fit: BoxFit.cover,
+              // Dev's `php artisan serve` serves /storage/* as a raw static
+              // file, bypassing Laravel (and its CORS middleware) entirely
+              // -- Flutter web's canvas-based decode then fails outright on
+              // the missing CORS header. Falling back to a plain <img>
+              // element sidesteps that; it doesn't need CORS to just render.
+              webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
               errorBuilder: (context, error, stackTrace) => Text(
                 _initials,
                 style: TextStyle(

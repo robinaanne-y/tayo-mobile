@@ -1124,22 +1124,66 @@ class _TripsSection extends ConsumerWidget {
               );
             }
 
-            return AppCard(
-              onTap: () => context.push('/trips'),
-              child: Row(
-                children: [
-                  Icon(LucideIcons.plane, color: context.colors.primary),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      trip.daysUntil != null && trip.daysUntil! > 0
-                          ? '${trip.title} in ${trip.daysUntil} day${trip.daysUntil == 1 ? '' : 's'}'
-                          : trip.title,
-                      style: Theme.of(context).textTheme.bodyMedium,
+            final dateLabel = [
+              DateFormat('MMM d').format(trip.startAt),
+              if (trip.endAt != null) '–${DateFormat('d').format(trip.endAt!)}',
+            ].join('');
+
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Material(
+                color: context.colors.primarySoft,
+                child: InkWell(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => TripDetailScreen(tripId: trip.id)),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'UPCOMING TRIP',
+                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                      color: context.colors.primary,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.8,
+                                    ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                trip.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                [dateLabel, if (trip.destination != null) trip.destination!]
+                                    .join(' · '),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: context.colors.textSecondary,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (trip.daysUntil != null && trip.daysUntil! > 0) ...[
+                          const SizedBox(width: 12),
+                          _DaysToGoBadge(days: trip.daysUntil!),
+                        ],
+                      ],
                     ),
                   ),
-                  Icon(LucideIcons.chevronRight, size: 18, color: context.colors.textSecondary),
-                ],
+                ),
               ),
             );
           },
@@ -1154,6 +1198,47 @@ class _TripsSection extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Solid-teal "N days to go" pill shown on the Upcoming Trip banner.
+class _DaysToGoBadge extends StatelessWidget {
+  const _DaysToGoBadge({required this.days});
+
+  final int days;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 72,
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+      decoration: BoxDecoration(
+        color: context.colors.primary,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$days',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: context.colors.primaryForeground,
+                  fontWeight: FontWeight.w800,
+                  height: 1,
+                ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'days to go',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: context.colors.primaryForeground,
+                  height: 1.1,
+                ),
+          ),
+        ],
+      ),
     );
   }
 }

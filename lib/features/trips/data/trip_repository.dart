@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 
 import '../../../core/networking/api_client.dart';
@@ -77,12 +79,13 @@ class TripRepository {
   Future<Trip> uploadThumbnail({
     required int householdId,
     required int tripId,
-    required String filePath,
+    required Uint8List bytes,
+    required String filename,
   }) async {
     final response = await _apiClient.post(
       '/households/$householdId/trips/$tripId/thumbnail',
       data: FormData.fromMap({
-        'thumbnail': await MultipartFile.fromFile(filePath),
+        'thumbnail': MultipartFile.fromBytes(bytes, filename: filename),
       }),
     );
     return Trip.fromJson((response.data as Map<String, dynamic>)['data'] as Map<String, dynamic>);

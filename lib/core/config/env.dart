@@ -17,7 +17,6 @@ class Env {
   /// resolving relative media paths like a member's `avatar_url`, which
   /// the backend deliberately returns without a host baked in.
   static String get mediaBaseUrl {
-    final uri = Uri.parse(apiBaseUrl);
-    return uri.replace(path: '', query: '').toString();
+    return Uri.parse(apiBaseUrl).origin;
   }
 }

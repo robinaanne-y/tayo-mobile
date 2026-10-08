@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 
 import '../../../core/networking/api_client.dart';
@@ -66,12 +68,13 @@ class MemberRepository {
   Future<Member> uploadAvatar({
     required int householdId,
     required int memberId,
-    required String filePath,
+    required Uint8List bytes,
+    required String filename,
   }) async {
     final response = await _apiClient.post(
       '/households/$householdId/members/$memberId/avatar',
       data: FormData.fromMap({
-        'avatar': await MultipartFile.fromFile(filePath),
+        'avatar': MultipartFile.fromBytes(bytes, filename: filename),
       }),
     );
 

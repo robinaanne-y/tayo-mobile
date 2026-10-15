@@ -412,6 +412,15 @@ class HomeScreen extends ConsumerWidget {
                     child: InkWell(
                       borderRadius: BorderRadius.circular(999),
                       onTap: () async {
+                        // The sheet's households (and their member counts)
+                        // come from the user cached at login/household
+                        // creation, so members added since then — during
+                        // onboarding, on the Family screen, or by someone
+                        // else — wouldn't show. Refresh in the background;
+                        // the sheet watches auth state and updates in place.
+                        // A failed refresh just leaves the cached list.
+                        ref.read(authControllerProvider.notifier).refreshUser().ignore();
+
                         // Resolve after the sheet has fully closed, using this
                         // screen's own (stable) context rather than the
                         // sheet's — popping first and immediately navigating

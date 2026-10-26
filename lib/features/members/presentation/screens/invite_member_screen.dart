@@ -306,54 +306,66 @@ class _AddMemberFormState extends ConsumerState<_AddMemberForm> {
           const SizedBox(height: 16),
           Text('Role', style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 8),
-          Row(
-            children: HouseholdRole.values
-                .where((r) => r != HouseholdRole.owner)
-                .map((role) {
-              final selected = role == _role;
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _role = role),
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
-                    decoration: BoxDecoration(
-                      color: selected ? context.colors.primary : context.colors.background,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: selected ? context.colors.primary : context.colors.border,
+          // IntrinsicHeight + stretch keeps the three cards the same height
+          // even when one description wraps to two lines on narrow widths.
+          IntrinsicHeight(
+            child: Row(
+              spacing: 8,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: HouseholdRole.values
+                  .where((r) => r != HouseholdRole.owner)
+                  .map((role) {
+                final selected = role == _role;
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _role = role),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+                      decoration: BoxDecoration(
+                        color: selected ? context.colors.primary : context.colors.background,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: selected ? context.colors.primary : context.colors.border,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Fixed slot so the Lucide icon and the emoji (which
+                          // carry different line heights) line the labels up.
+                          SizedBox(
+                            height: 26,
+                            child: Center(child: _RoleIcon(role: role, selected: selected)),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            role.label,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: selected ? Colors.white : context.colors.textPrimary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            role.description,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: selected
+                                  ? Colors.white.withValues(alpha: 0.85)
+                                  : context.colors.textSecondary,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    alignment: Alignment.center,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _RoleIcon(role: role, selected: selected),
-                        const SizedBox(height: 8),
-                        Text(
-                          role.label,
-                          style: TextStyle(
-                            color: selected ? Colors.white : context.colors.textPrimary,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          role.description,
-                          style: TextStyle(
-                            color: selected
-                                ? Colors.white.withValues(alpha: 0.85)
-                                : context.colors.textSecondary,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
-                ),
-              );
-            }).toList(),
+                );
+              }).toList(),
+            ),
           ),
           if (_role == HouseholdRole.child) ...[
             const SizedBox(height: 16),

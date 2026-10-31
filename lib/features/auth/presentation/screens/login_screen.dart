@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/networking/api_exception.dart';
 import '../../../../core/theme/app_color_tokens.dart';
@@ -11,7 +13,10 @@ import '../providers/auth_controller.dart';
 enum _AuthMode { login, signup }
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.startInSignup = false});
+
+  /// Opens on the Sign up tab, e.g. from the welcome screen's "Get started".
+  final bool startInSignup;
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -24,8 +29,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
 
-  _AuthMode _mode = _AuthMode.login;
+  late _AuthMode _mode = widget.startInSignup ? _AuthMode.signup : _AuthMode.login;
   bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
   String? _errorMessage;
 
   @override
@@ -78,14 +85,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final isLogin = _mode == _AuthMode.login;
 
     return Scaffold(
+      backgroundColor: context.colors.background,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
           child: Form(
             key: _formKey,
             child: ListView(
               children: [
-                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: IconButton.filled(
+                    tooltip: 'Back',
+                    onPressed: () =>
+                        context.canPop() ? context.pop() : context.go('/welcome'),
+                    style: IconButton.styleFrom(
+                      backgroundColor: context.colors.primarySoft,
+                      foregroundColor: context.colors.textPrimary,
+                    ),
+                    icon: const Icon(LucideIcons.chevronLeft, size: 20),
+                  ),
+                ),
+                const SizedBox(height: 20),
                 Row(
                   children: [
                     Container(
@@ -122,9 +143,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: context.colors.background,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: context.colors.border),
+                    color: context.colors.primarySoft,
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
                     children: _AuthMode.values.map((mode) {
@@ -137,7 +157,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             decoration: BoxDecoration(
                               color: selected ? context.colors.surface : null,
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(12),
                               boxShadow: selected
                                   ? [
                                       BoxShadow(
@@ -173,6 +193,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 if (!isLogin) ...[
                   AppTextField(
                     label: 'Your name',
+                    hint: 'e.g. Maria',
+                    labelAbove: true,
                     controller: _nameController,
                     autofillHints: const [AutofillHints.name],
                     validator: (value) {
@@ -187,6 +209,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ],
                 AppTextField(
                   label: 'Email address',
+                  hint: 'you@example.com',
+                  labelAbove: true,
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   autofillHints: const [AutofillHints.email],
@@ -201,8 +225,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 16),
                 AppTextField(
                   label: 'Password',
+                  hint: '••••••••',
+                  labelAbove: true,
                   controller: _passwordController,
-                  obscureText: true,
+                  obscureText: _obscurePassword,
+                  suffixIcon: _VisibilityToggle(
+                    obscured: _obscurePassword,
+                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  ),
                   autofillHints: [
                     isLogin ? AutofillHints.password : AutofillHints.newPassword,
                   ],
@@ -223,8 +253,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 16),
                   AppTextField(
                     label: 'Confirm password',
+                    hint: '••••••••',
+                    labelAbove: true,
                     controller: _confirmController,
-                    obscureText: true,
+                    obscureText: _obscureConfirm,
+                    suffixIcon: _VisibilityToggle(
+                      obscured: _obscureConfirm,
+                      onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                    ),
                     autofillHints: const [AutofillHints.newPassword],
                     validator: (value) {
                       if (isLogin) return null;
@@ -247,6 +283,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _VisibilityToggle extends StatelessWidget {
+  const _VisibilityToggle({required this.obscured, required this.onPressed});
+
+  final bool obscured;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: obscured ? 'Show password' : 'Hide password',
+      onPressed: onPressed,
+      color: context.colors.icon,
+      icon: Icon(obscured ? LucideIcons.eye : LucideIcons.eyeOff, size: 20),
     );
   }
 }

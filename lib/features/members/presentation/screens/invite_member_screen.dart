@@ -47,60 +47,73 @@ class _InviteMemberScreenState extends ConsumerState<InviteMemberScreen> {
     final emoji = household?.emoji ?? kHouseholdEmojis.first;
 
     return Scaffold(
+      backgroundColor: context.colors.background,
+      // Top inset is handled by the header's own SafeArea so its white
+      // background extends behind the status bar.
       body: SafeArea(
+        top: false,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+            Container(
+              decoration: BoxDecoration(
+                color: context.colors.surface,
+                border: Border(bottom: BorderSide(color: context.colors.border)),
+              ),
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: color,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Text(emoji, style: const TextStyle(fontSize: 20)),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Setting up',
-                                style: Theme.of(context).textTheme.bodySmall),
-                            Text(
-                              household?.name ?? '',
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                              style: Theme.of(context).textTheme.titleMedium,
+                      Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: color,
+                              borderRadius: BorderRadius.circular(14),
                             ),
-                          ],
-                        ),
+                            child: Text(emoji, style: const TextStyle(fontSize: 20)),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Setting up',
+                                    style: Theme.of(context).textTheme.bodySmall),
+                                Text(
+                                  household?.name ?? '',
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                  style: Theme.of(context).textTheme.titleMedium,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Text('Add your family members',
+                          style: Theme.of(context).textTheme.titleLarge),
+                      const SizedBox(height: 6),
+                      Text(
+                        "Add everyone who'll use the app. You can also create "
+                        'placeholder profiles for babies and young children.',
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  Text('Add your family members',
-                      style: Theme.of(context).textTheme.titleLarge),
-                  const SizedBox(height: 6),
-                  Text(
-                    "Add everyone who'll use the app. You can also create "
-                    'placeholder profiles for babies and young children.',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
+                ),
               ),
             ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
                 children: [
                   for (var i = 0; i < _added.length; i++) ...[
                     AppCard(
@@ -116,41 +129,47 @@ class _InviteMemberScreenState extends ConsumerState<InviteMemberScreen> {
                     ),
                     const SizedBox(height: 8),
                   ],
-                  InkWell(
-                    onTap: _openAddSheet,
+                  // White fill sits on the Material (not the Container) so
+                  // the InkWell's ripple stays visible over it.
+                  Material(
+                    color: context.colors.surface,
                     borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: context.colors.border,
-                          width: 1.5,
-                          style: BorderStyle.solid,
+                    child: InkWell(
+                      onTap: _openAddSheet,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: context.colors.border,
+                            width: 1.5,
+                            style: BorderStyle.solid,
+                          ),
                         ),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: context.colors.background,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: context.colors.border),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: context.colors.background,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: context.colors.border),
+                              ),
+                              child: Icon(LucideIcons.plus, color: context.colors.primary),
                             ),
-                            child: Icon(LucideIcons.plus, color: context.colors.primary),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Add family member',
-                            style: TextStyle(
-                              color: context.colors.primary,
-                              fontWeight: FontWeight.w700,
+                            const SizedBox(width: 12),
+                            Text(
+                              'Add family member',
+                              style: TextStyle(
+                                color: context.colors.primary,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),

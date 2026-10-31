@@ -96,7 +96,11 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/splash', builder: (context, state) => const SplashScreen()),
       GoRoute(path: '/welcome', builder: (context, state) => const WelcomeScreen()),
-      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(
+        path: '/login',
+        builder: (context, state) =>
+            LoginScreen(startInSignup: state.uri.queryParameters['mode'] == 'signup'),
+      ),
       GoRoute(
         path: '/create-household',
         builder: (context, state) => const CreateHouseholdScreen(),

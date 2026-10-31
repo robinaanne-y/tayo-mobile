@@ -3,67 +3,13 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_color_tokens.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/accessibility.dart';
 import '../../../../shared/screens/qr_scan_screen.dart';
+import '../widgets/welcome_illustration.dart';
 
-class _Slide {
-  const _Slide({
-    required this.emoji,
-    required this.color,
-    required this.title,
-    required this.body,
-  });
-
-  final String emoji;
-  final Color color;
-  final String title;
-  final String body;
-}
-
-List<_Slide> _slides(BuildContext context) => [
-      _Slide(
-        emoji: '🏡',
-        color: context.colors.primary,
-        title: 'Your family, in sync',
-        body: 'Schedules, meals, groceries, and more — all in one calm, '
-            'friendly place your whole family will love opening every morning.',
-      ),
-      const _Slide(
-        emoji: '🔔',
-        color: AppColors.skyBlue,
-        title: 'Never miss a thing',
-        body: 'Share calendars, track chores, plan trips, and manage permission '
-            'requests — all coordinated across every family member.',
-      ),
-      _Slide(
-        emoji: '🍽️',
-        color: context.colors.accent,
-        title: 'From meals to memories',
-        body: "Plan the week's dinners, build grocery lists together, and "
-            'celebrate the moments that matter most.',
-      ),
-    ];
-
-class WelcomeScreen extends StatefulWidget {
+class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
-  @override
-  State<WelcomeScreen> createState() => _WelcomeScreenState();
-}
-
-class _WelcomeScreenState extends State<WelcomeScreen> {
-  int _current = 0;
-
-  void _next() {
-    if (_current < _slides(context).length - 1) {
-      setState(() => _current++);
-    } else {
-      context.go('/login');
-    }
-  }
-
-  void _openScanner() {
+  void _openScanner(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const QrScanScreen()),
     );
@@ -71,109 +17,116 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final slide = _slides(context)[_current];
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
+      backgroundColor: context.colors.background,
       body: SafeArea(
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.fromLTRB(24, 12, 16, 0),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: context.colors.primary,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Text('🏡', style: TextStyle(fontSize: 20)),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Tayo', style: textTheme.titleLarge),
+                        Text('Family, together.', style: textTheme.bodySmall),
+                      ],
+                    ),
+                  ),
                   IconButton(
-                    onPressed: _openScanner,
+                    onPressed: () => _openScanner(context),
                     icon: const Icon(LucideIcons.scanLine),
                     tooltip: 'Scan invite code',
                     color: context.colors.textSecondary,
                   ),
-                  TextButton(
+                  OutlinedButton(
                     onPressed: () => context.go('/login'),
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: context.colors.surface,
+                      foregroundColor: context.colors.primary,
+                      side: BorderSide(color: context.colors.border),
+                      shape: const StadiumBorder(),
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
                     child: const Text('Sign in'),
                   ),
                 ],
               ),
             ),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    AnimatedContainer(
-                      duration: context.motionDuration(const Duration(milliseconds: 300)),
-                      width: 180,
-                      height: 180,
-                      decoration: BoxDecoration(
-                        color: slide.color.withValues(alpha: 0.07),
-                        borderRadius: BorderRadius.circular(28),
-                        border: Border.all(
-                          color: slide.color.withValues(alpha: 0.2),
-                          width: 2,
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  child: Column(
+                    children: [
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 280),
+                        child: const WelcomeIllustration(),
+                      ),
+                      const SizedBox(height: 28),
+                      Text(
+                        'MAKE ROOM FOR MORE JOY',
+                        textAlign: TextAlign.center,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: context.colors.primary,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.4,
                         ),
                       ),
-                      alignment: Alignment.center,
-                      child: Text(slide.emoji, style: const TextStyle(fontSize: 72)),
-                    ),
-                    const SizedBox(height: 32),
-                    Text(
-                      slide.title,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.displayLarge,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      slide.body,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: context.colors.textSecondary,
-                            height: 1.5,
-                          ),
-                    ),
-                  ],
+                      const SizedBox(height: 10),
+                      Text(
+                        'Family life, colorfully organized',
+                        textAlign: TextAlign.center,
+                        style: textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Bring schedules, meals, chores, and little family '
+                        'moments together in one happy place.',
+                        textAlign: TextAlign.center,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: context.colors.textSecondary,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
               child: Column(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(_slides(context).length, (i) {
-                      final active = i == _current;
-                      return AnimatedContainer(
-                        duration: context.motionDuration(const Duration(milliseconds: 200)),
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: active ? 24 : 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: active ? slide.color : context.colors.border,
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _next,
-                      style: ElevatedButton.styleFrom(backgroundColor: slide.color),
-                      child: Text(
-                        _current < _slides(context).length - 1 ? 'Continue' : 'Get started',
-                      ),
+                      onPressed: () => context.go('/login?mode=signup'),
+                      child: const Text('Get started'),
                     ),
                   ),
                   const SizedBox(height: 16),
                   Wrap(
                     alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      Text(
-                        'Already have an account? ',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
+                      Text('Already have an account? ', style: textTheme.bodySmall),
                       GestureDetector(
                         onTap: () => context.go('/login'),
                         child: Text(

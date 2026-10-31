@@ -26,6 +26,6 @@ void main() {
     await tester.pumpAndSettle();
 
     // No stored token -> router redirects to /welcome.
-    expect(find.text('Your family, in sync'), findsOneWidget);
+    expect(find.text('Family life, colorfully organized'), findsOneWidget);
   });
 }

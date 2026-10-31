@@ -4,8 +4,15 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:tayo/core/theme/app_theme.dart';
 import 'package:tayo/features/auth/presentation/screens/login_screen.dart';
+import 'package:tayo/shared/widgets/app_text_field.dart';
 
 void main() {
+  // Labels render above the input, so find the field via its AppTextField.
+  Finder field(String label) => find.descendant(
+        of: find.widgetWithText(AppTextField, label),
+        matching: find.byType(TextFormField),
+      );
+
   Future<void> pumpLogin(WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
@@ -27,9 +34,8 @@ void main() {
   testWidgets('shows an error for an invalid email', (tester) async {
     await pumpLogin(tester);
 
-    await tester.enterText(
-        find.widgetWithText(TextFormField, 'Email address'), 'not-an-email');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Password'), 'password123');
+    await tester.enterText(field('Email address'), 'not-an-email');
+    await tester.enterText(field('Password'), 'password123');
     await tester.tap(find.widgetWithText(ElevatedButton, 'Sign in'));
     await tester.pump();
 

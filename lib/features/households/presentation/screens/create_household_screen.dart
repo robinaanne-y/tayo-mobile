@@ -114,7 +114,7 @@ class _CreateHouseholdScreenState extends ConsumerState<CreateHouseholdScreen> {
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
               Text('Step $_step of 2', style: Theme.of(context).textTheme.bodySmall),
               const SizedBox(height: 24),
               Expanded(
@@ -149,9 +149,12 @@ class _CreateHouseholdScreenState extends ConsumerState<CreateHouseholdScreen> {
     );
   }
 
+  TextStyle? _stepTitleStyle(BuildContext context) =>
+      Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800);
+
   List<Widget> _buildStepOne(BuildContext context) {
     return [
-      Text('Name your household', style: Theme.of(context).textTheme.titleLarge),
+      Text('Name your household', style: _stepTitleStyle(context)),
       const SizedBox(height: 6),
       Text(
         'This is what your family will see. You can always change it later.',
@@ -164,6 +167,8 @@ class _CreateHouseholdScreenState extends ConsumerState<CreateHouseholdScreen> {
       const SizedBox(height: 20),
       AppTextField(
         label: 'Household name',
+        hint: 'e.g. The Santos Family',
+        labelAbove: true,
         controller: _nameController,
       ),
     ];
@@ -171,7 +176,7 @@ class _CreateHouseholdScreenState extends ConsumerState<CreateHouseholdScreen> {
 
   List<Widget> _buildStepTwo(BuildContext context, String name) {
     return [
-      Text('Make it yours', style: Theme.of(context).textTheme.titleLarge),
+      Text('Make it yours', style: _stepTitleStyle(context)),
       const SizedBox(height: 6),
       Text.rich(
         TextSpan(
